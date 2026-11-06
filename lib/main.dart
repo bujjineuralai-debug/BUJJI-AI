@@ -69,7 +69,6 @@ class _BujjiHomeScreenState extends State<BujjiHomeScreen> {
 
   final Color cyan = const Color(0xFF20D9E8);
   final Color gold = const Color(0xFFFFC857);
-  final Color navy = const Color(0xFF071629);
 
   final List<String> navigationItems = [
     'Home',
@@ -755,4 +754,5 @@ class BujjiBackgroundPainter extends CustomPainter {
       ..strokeWidth = 0.7;
 
     for (int i = 0; i < points.length; i++) {
-      for (int j = i + 1; j < points.leng
+      for (int j = i + 1; j < points.length; j++) {
+        final distance = (points[i]
