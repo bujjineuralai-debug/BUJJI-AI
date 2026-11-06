@@ -1,4 +1,8 @@
 
+import 'dart:async';
+import 'dart:convert';
+import 'dart:io';
+
 import 'package:flutter/material.dart';
 
 void main() {
@@ -24,6 +28,23 @@ class BujjiAIApp extends StatelessWidget {
   }
 }
 
+class ChatMessage {
+  final String role;
+  final String content;
+
+  const ChatMessage({
+    required this.role,
+    required this.content,
+  });
+
+  Map<String, String> toJson() {
+    return {
+      'role': role,
+      'content': content,
+    };
+  }
+}
+
 class BujjiHomeScreen extends StatefulWidget {
   const BujjiHomeScreen({super.key});
 
@@ -32,10 +53,19 @@ class BujjiHomeScreen extends StatefulWidget {
 }
 
 class _BujjiHomeScreenState extends State<BujjiHomeScreen> {
+  static const String apiUrl =
+      'https://bujji-ai-api.bujji-neural-ai.workers.dev/chat';
+
   int selectedIndex = 0;
+  bool isLoading = false;
 
   final TextEditingController messageController =
       TextEditingController();
+
+  final ScrollController chatScrollController =
+      ScrollController();
+
+  final List<ChatMessage> messages = [];
 
   final Color cyan = const Color(0xFF20D9E8);
   final Color gold = const Color(0xFFFFC857);
@@ -60,7 +90,153 @@ class _BujjiHomeScreenState extends State<BujjiHomeScreen> {
   @override
   void dispose() {
     messageController.dispose();
+    chatScrollController.dispose();
     super.dispose();
+  }
+
+  // SEND MESSAGE TO CLOUDFLARE AI
+  Future<void> sendMessage() async {
+    if (isLoading) return;
+
+    final String message = messageController.text.trim();
+
+    if (message.isEmpty) return;
+
+    if (message.length > 4000) {
+      showMessage('Message is too long.');
+      return;
+    }
+
+    // Keep previous conversation for AI context.
+    final List<Map<String, String>> history =
+        messages.map((item) => item.toJson()).toList();
+
+    setState(() {
+      messages.add(
+        ChatMessage(
+          role: 'user',
+          content: message,
+        ),
+      );
+
+      isLoading = true;
+    });
+
+    messageController.clear();
+    scrollToBottom();
+
+    final HttpClient client = HttpClient();
+    client.connectionTimeout = const Duration(seconds: 20);
+
+    try {
+      final Uri uri = Uri.parse(apiUrl);
+
+      final HttpClientRequest request =
+          await client.postUrl(uri).timeout(
+        const Duration(seconds: 30),
+      );
+
+      request.headers.contentType = ContentType.json;
+      request.headers.set(
+        HttpHeaders.acceptHeader,
+        'application/json',
+      );
+
+      request.add(
+        utf8.encode(
+          jsonEncode({
+            'message': message,
+            'history': history,
+          }),
+        ),
+      );
+
+      final HttpClientResponse response =
+          await request.close().timeout(
+        const Duration(seconds: 60),
+      );
+
+      final String responseBody =
+          await utf8.decoder.bind(response).join().timeout(
+        const Duration(seconds: 30),
+      );
+
+      final dynamic decoded = jsonDecode(responseBody);
+
+      if (decoded is! Map<String, dynamic>) {
+        throw Exception('Invalid server response.');
+      }
+
+      if (response.statusCode < 200 ||
+          response.statusCode >= 300 ||
+          decoded['success'] != true) {
+        throw Exception(
+          decoded['error']?.toString() ??
+              'Unable to get AI response.',
+        );
+      }
+
+      final String reply =
+          decoded['reply']?.toString() ?? '';
+
+      if (reply.trim().isEmpty) {
+        throw Exception('AI returned an empty response.');
+      }
+
+      if (!mounted) return;
+
+      setState(() {
+        messages.add(
+          ChatMessage(
+            role: 'assistant',
+            content: reply.trim(),
+          ),
+        );
+      });
+
+      scrollToBottom();
+    } catch (error) {
+      if (!mounted) return;
+
+      showMessage(
+        'BUJJI AI connection failed. Please try again.',
+      );
+
+      debugPrint('BUJJI AI Error: $error');
+    } finally {
+      client.close(force: true);
+
+      if (mounted) {
+        setState(() {
+          isLoading = false;
+        });
+
+        scrollToBottom();
+      }
+    }
+  }
+
+  void scrollToBottom() {
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      if (!mounted || !chatScrollController.hasClients) {
+        return;
+      }
+
+      chatScrollController.animateTo(
+        chatScrollController.position.maxScrollExtent,
+        duration: const Duration(milliseconds: 300),
+        curve: Curves.easeOut,
+      );
+    });
+  }
+
+  void showMessage(String message) {
+    ScaffoldMessenger.of(context).showSnackBar(
+      SnackBar(
+        content: Text(message),
+        backgroundColor: const Color(0xFF142B42),
+      ),
+    );
   }
 
   @override
@@ -204,9 +380,7 @@ class _BujjiHomeScreenState extends State<BujjiHomeScreen> {
       children: [
         Container(
           width: double.infinity,
-          margin: const EdgeInsets.fromLTRB(
-            16, 22, 16, 12,
-          ),
+          margin: const EdgeInsets.fromLTRB(16, 22, 16, 12),
           padding: const EdgeInsets.all(19),
           decoration: BoxDecoration(
             gradient: const LinearGradient(
@@ -276,8 +450,103 @@ class _BujjiHomeScreenState extends State<BujjiHomeScreen> {
             ],
           ),
         ),
-        const Expanded(child: SizedBox()),
+
+        // CHAT AREA
+        Expanded(
+          child: messages.isEmpty
+              ? const SizedBox()
+              : ListView.builder(
+                  controller: chatScrollController,
+                  padding: const EdgeInsets.fromLTRB(
+                    14, 5, 14, 12,
+                  ),
+                  itemCount: messages.length + (isLoading ? 1 : 0),
+                  itemBuilder: (context, index) {
+                    if (index == messages.length) {
+                      return _buildTypingIndicator();
+                    }
+
+                    return _buildMessageBubble(messages[index]);
+                  },
+                ),
+        ),
       ],
+    );
+  }
+
+  Widget _buildMessageBubble(ChatMessage message) {
+    final bool isUser = message.role == 'user';
+
+    return Align(
+      alignment:
+          isUser ? Alignment.centerRight : Alignment.centerLeft,
+      child: Container(
+        constraints: BoxConstraints(
+          maxWidth: MediaQuery.of(context).size.width * 0.82,
+        ),
+        margin: const EdgeInsets.symmetric(vertical: 6),
+        padding: const EdgeInsets.symmetric(
+          horizontal: 15,
+          vertical: 12,
+        ),
+        decoration: BoxDecoration(
+          color: isUser
+              ? const Color(0xFF123A50)
+              : const Color(0xFF0C2035),
+          borderRadius: BorderRadius.circular(17),
+          border: Border.all(
+            color: isUser
+                ? gold.withValues(alpha: 0.45)
+                : cyan.withValues(alpha: 0.35),
+          ),
+        ),
+        child: Text(
+          message.content,
+          style: const TextStyle(
+            color: Colors.white,
+            fontSize: 14,
+            height: 1.5,
+          ),
+        ),
+      ),
+    );
+  }
+
+  Widget _buildTypingIndicator() {
+    return Align(
+      alignment: Alignment.centerLeft,
+      child: Container(
+        margin: const EdgeInsets.symmetric(vertical: 8),
+        padding: const EdgeInsets.all(14),
+        decoration: BoxDecoration(
+          color: const Color(0xFF0C2035),
+          borderRadius: BorderRadius.circular(16),
+          border: Border.all(
+            color: cyan.withValues(alpha: 0.35),
+          ),
+        ),
+        child: Row(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            SizedBox(
+              height: 17,
+              width: 17,
+              child: CircularProgressIndicator(
+                strokeWidth: 2,
+                color: cyan,
+              ),
+            ),
+            const SizedBox(width: 10),
+            const Text(
+              'BUJJI AI is thinking...',
+              style: TextStyle(
+                color: Color(0xFFCBD8E8),
+                fontSize: 12,
+              ),
+            ),
+          ],
+        ),
+      ),
     );
   }
 
@@ -316,9 +585,7 @@ class _BujjiHomeScreenState extends State<BujjiHomeScreen> {
 
   Widget _buildComposer() {
     return Container(
-      margin: const EdgeInsets.fromLTRB(
-        13, 8, 13, 12,
-      ),
+      margin: const EdgeInsets.fromLTRB(13, 8, 13, 12),
       padding: const EdgeInsets.symmetric(
         horizontal: 10,
         vertical: 5,
@@ -340,13 +607,7 @@ class _BujjiHomeScreenState extends State<BujjiHomeScreen> {
         children: [
           IconButton(
             onPressed: () {
-              ScaffoldMessenger.of(context).showSnackBar(
-                const SnackBar(
-                  content: Text(
-                    'Voice input will be added later.',
-                  ),
-                ),
-              );
+              showMessage('Voice input will be added later.');
             },
             icon: Icon(
               Icons.mic_none_rounded,
@@ -356,6 +617,11 @@ class _BujjiHomeScreenState extends State<BujjiHomeScreen> {
           Expanded(
             child: TextField(
               controller: messageController,
+              enabled: !isLoading,
+              maxLines: 3,
+              minLines: 1,
+              textInputAction: TextInputAction.send,
+              onSubmitted: (_) => sendMessage(),
               style: const TextStyle(
                 color: Colors.white,
                 fontSize: 14,
@@ -372,18 +638,10 @@ class _BujjiHomeScreenState extends State<BujjiHomeScreen> {
             ),
           ),
           IconButton(
-            onPressed: () {
-              ScaffoldMessenger.of(context).showSnackBar(
-                const SnackBar(
-                  content: Text(
-                    'Chat will be enabled after UI approval.',
-                  ),
-                ),
-              );
-            },
+            onPressed: isLoading ? null : sendMessage,
             icon: Icon(
               Icons.send_rounded,
-              color: gold,
+              color: isLoading ? Colors.white38 : gold,
             ),
           ),
         ],
@@ -410,8 +668,7 @@ class _BujjiHomeScreenState extends State<BujjiHomeScreen> {
         children: List.generate(
           navigationItems.length,
           (index) {
-            final bool isSelected =
-                selectedIndex == index;
+            final bool isSelected = selectedIndex == index;
 
             return Expanded(
               child: InkWell(
@@ -445,15 +702,12 @@ class _BujjiHomeScreenState extends State<BujjiHomeScreen> {
                     ),
                     const SizedBox(height: 6),
                     AnimatedContainer(
-                      duration: const Duration(
-                        milliseconds: 200,
-                      ),
+                      duration: const Duration(milliseconds: 200),
                       height: 3,
                       width: isSelected ? 25 : 0,
                       decoration: BoxDecoration(
                         color: cyan,
-                        borderRadius:
-                            BorderRadius.circular(5),
+                        borderRadius: BorderRadius.circular(5),
                       ),
                     ),
                   ],
@@ -501,110 +755,4 @@ class BujjiBackgroundPainter extends CustomPainter {
       ..strokeWidth = 0.7;
 
     for (int i = 0; i < points.length; i++) {
-      for (int j = i + 1; j < points.length; j++) {
-        if ((points[i] - points[j]).distance <
-            size.width * 0.20) {
-          canvas.drawLine(
-            points[i],
-            points[j],
-            linePaint,
-          );
-        }
-      }
-    }
-
-    for (final point in points) {
-      final glowPaint = Paint()
-        ..color = const Color(0xFF00DDF5).withValues(alpha: 0.10)
-        ..maskFilter = const MaskFilter.blur(
-          BlurStyle.normal,
-          7,
-        );
-
-      canvas.drawCircle(point, 5, glowPaint);
-
-      final dotPaint = Paint()
-        ..color = const Color(0xFF13CBEA).withValues(alpha: 0.70);
-
-      canvas.drawCircle(point, 1.7, dotPaint);
-    }
-
-    final cyanWave = Path()
-      ..moveTo(0, size.height * 0.82)
-      ..cubicTo(
-        size.width * 0.20,
-        size.height * 0.77,
-        size.width * 0.32,
-        size.height * 0.91,
-        size.width * 0.53,
-        size.height * 0.87,
-      )
-      ..cubicTo(
-        size.width * 0.72,
-        size.height * 0.83,
-        size.width * 0.82,
-        size.height * 0.76,
-        size.width,
-        size.height * 0.81,
-      );
-
-    final cyanPaint = Paint()
-      ..style = PaintingStyle.stroke
-      ..strokeWidth = 1.7
-      ..shader = const LinearGradient(
-        colors: [
-          Color(0xFF00BFEA),
-          Color(0xFF20E6D0),
-          Color(0xFFFFC857),
-        ],
-      ).createShader(rect);
-
-    canvas.drawPath(cyanWave, cyanPaint);
-
-    final secondWave = Path()
-      ..moveTo(0, size.height * 0.85)
-      ..cubicTo(
-        size.width * 0.23,
-        size.height * 0.80,
-        size.width * 0.36,
-        size.height * 0.94,
-        size.width * 0.57,
-        size.height * 0.90,
-      )
-      ..cubicTo(
-        size.width * 0.76,
-        size.height * 0.85,
-        size.width * 0.87,
-        size.height * 0.80,
-        size.width,
-        size.height * 0.85,
-      );
-
-    final secondPaint = Paint()
-      ..style = PaintingStyle.stroke
-      ..strokeWidth = 0.8
-      ..color = const Color(0xFF00CFE8).withValues(alpha: 0.45);
-
-    canvas.drawPath(secondWave, secondPaint);
-
-    final goldGlow = Paint()
-      ..color = const Color(0xFFFFC857).withValues(alpha: 0.08)
-      ..maskFilter = const MaskFilter.blur(
-        BlurStyle.normal,
-        35,
-      );
-
-    canvas.drawCircle(
-      Offset(size.width * 0.90, size.height * 0.84),
-      65,
-      goldGlow,
-    );
-  }
-
-  @override
-  bool shouldRepaint(
-    covariant BujjiBackgroundPainter oldDelegate,
-  ) {
-    return false;
-  }
-}
+      for (int j = i + 1; j < points.leng
