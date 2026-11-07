@@ -12,7 +12,7 @@ jobs:
     runs-on: ubuntu-latest
 
     steps:
-      - name: Checkout
+      - name: Checkout Repository
         uses: actions/checkout@v4
 
       - name: Setup Java
@@ -26,16 +26,29 @@ jobs:
         with:
           channel: stable
 
-      - name: Generate Android project
+      - name: Backup Custom Android Manifest
+        run: |
+          if [ -f android/app/src/main/AndroidManifest.xml ]; then
+            mkdir -p /tmp/bujji-backup
+            cp android/app/src/main/AndroidManifest.xml /tmp/bujji-backup/AndroidManifest.xml
+          fi
+
+      - name: Generate Android Project
         run: flutter create --platforms=android .
 
-      - name: Install dependencies
+      - name: Restore Custom Android Manifest
+        run: |
+          if [ -f /tmp/bujji-backup/AndroidManifest.xml ]; then
+            cp /tmp/bujji-backup/AndroidManifest.xml android/app/src/main/AndroidManifest.xml
+          fi
+
+      - name: Install Dependencies
         run: flutter pub get
 
       - name: Generate BUJJI AI Launcher Icon
         run: dart run flutter_launcher_icons
 
-      - name: Build APK
+      - name: Build Release APK
         run: flutter build apk --release
 
       - name: Upload APK
