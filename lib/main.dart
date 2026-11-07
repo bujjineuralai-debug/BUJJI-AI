@@ -1,4 +1,3 @@
-
 import 'dart:async';
 import 'dart:convert';
 import 'dart:io';
@@ -157,18 +156,33 @@ class _BujjiHomeScreenState extends State<BujjiHomeScreen> {
         const Duration(seconds: 30),
       );
 
-      final dynamic decoded = jsonDecode(responseBody);
+      dynamic decoded;
+
+      try {
+        decoded = jsonDecode(responseBody);
+      } catch (_) {
+        throw Exception(
+          'HTTP ${response.statusCode}: Invalid JSON response. '
+          'Server response: ${responseBody.isEmpty ? "(empty)" : responseBody.substring(0, responseBody.length > 250 ? 250 : responseBody.length)}',
+        );
+      }
 
       if (decoded is! Map<String, dynamic>) {
-        throw Exception('Invalid server response.');
+        throw Exception(
+          'HTTP ${response.statusCode}: Invalid server response.',
+        );
       }
 
       if (response.statusCode < 200 ||
           response.statusCode >= 300 ||
           decoded['success'] != true) {
+        final String serverError =
+            decoded['error']?.toString() ??
+            decoded['message']?.toString() ??
+            'Unknown server error';
+
         throw Exception(
-          decoded['error']?.toString() ??
-              'Unable to get AI response.',
+          'HTTP ${response.statusCode}: $serverError',
         );
       }
 
@@ -193,11 +207,16 @@ class _BujjiHomeScreenState extends State<BujjiHomeScreen> {
     } catch (error) {
       if (!mounted) return;
 
-      showMessage(
-        'BUJJI AI connection failed. Please try again.',
-      );
+      final String errorDetails = error.toString();
 
-      debugPrint('BUJJI AI Error: $error');
+      debugPrint('BUJJI AI Error: $errorDetails');
+
+      final String visibleError =
+          errorDetails.length > 220
+              ? '${errorDetails.substring(0, 220)}...'
+              : errorDetails;
+
+      showMessage('BUJJI AI error: $visibleError');
     } finally {
       client.close(force: true);
 
@@ -228,7 +247,13 @@ class _BujjiHomeScreenState extends State<BujjiHomeScreen> {
   void showMessage(String message) {
     ScaffoldMessenger.of(context).showSnackBar(
       SnackBar(
-        content: Text(message),
+        content: Text(
+          message,
+          style: const TextStyle(
+            color: Colors.white,
+            fontWeight: FontWeight.w500,
+          ),
+        ),
         backgroundColor: const Color(0xFF142B42),
       ),
     );
