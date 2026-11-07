@@ -1,3 +1,4 @@
+
 import 'package:flutter/material.dart';
 
 class SmartCalculator extends StatefulWidget {
@@ -8,14 +9,18 @@ class SmartCalculator extends StatefulWidget {
 }
 
 class _SmartCalculatorState extends State<SmartCalculator> {
-  final TextEditingController _firstController = TextEditingController();
-  final TextEditingController _secondController = TextEditingController();
-  final TextEditingController _rateController = TextEditingController();
-  final TextEditingController _monthsController = TextEditingController();
+  final _firstController = TextEditingController();
+  final _secondController = TextEditingController();
+  final _rateController = TextEditingController();
+  final _monthsController = TextEditingController();
+
+  final _secondFocus = FocusNode();
 
   String _result = '0';
   String _expression = '';
   String _mode = 'Basic';
+  String _operation = '+';
+
   final List<String> _history = [];
 
   final Color _background = const Color(0xFF071426);
@@ -29,11 +34,12 @@ class _SmartCalculatorState extends State<SmartCalculator> {
     _secondController.dispose();
     _rateController.dispose();
     _monthsController.dispose();
+    _secondFocus.dispose();
     super.dispose();
   }
 
-  double _number(String value) {
-    return double.tryParse(value.trim()) ?? 0;
+  double? _number(String value) {
+    return double.tryParse(value.trim());
   }
 
   String _format(double value) {
@@ -44,13 +50,28 @@ class _SmartCalculatorState extends State<SmartCalculator> {
     return value.toStringAsFixed(2);
   }
 
-  void _calculate(String operation) {
+  void _showResult(String expression, double answer) {
+    final formatted = _format(answer);
+
+    setState(() {
+      _expression = expression;
+      _result = formatted;
+      _history.insert(0, '$expression = $formatted');
+    });
+  }
+
+  void _calculateBasic() {
     final a = _number(_firstController.text);
     final b = _number(_secondController.text);
 
+    if (a == null || b == null) {
+      setState(() => _result = 'Enter both numbers');
+      return;
+    }
+
     double answer;
 
-    switch (operation) {
+    switch (_operation) {
       case '+':
         answer = a + b;
         break;
@@ -74,14 +95,22 @@ class _SmartCalculatorState extends State<SmartCalculator> {
         return;
     }
 
-    _showResult('$a $operation $b', answer);
+    _showResult('$a $_operation $b', answer);
   }
 
   void _calculateGst(bool add) {
     final amount = _number(_firstController.text);
     final rate = _number(_rateController.text);
 
-    final gst = amount * rate / 100;
+    if (amount == null || rate == null || amount < 0 || rate < 0) {
+      setState(() => _result = 'Enter valid GST details');
+      return;
+    }
+
+    final gst = add
+        ? amount * rate / 100
+        : amount * rate / (100 + rate);
+
     final total = add ? amount + gst : amount - gst;
 
     _showResult(
@@ -93,13 +122,19 @@ class _SmartCalculatorState extends State<SmartCalculator> {
   void _calculateEmi() {
     final principal = _number(_firstController.text);
     final annualRate = _number(_rateController.text);
-    final months = _number(_monthsController.text).round();
+    final monthsValue = _number(_monthsController.text);
 
-    if (principal <= 0 || months <= 0 || annualRate < 0) {
+    if (principal == null ||
+        annualRate == null ||
+        monthsValue == null ||
+        principal <= 0 ||
+        annualRate < 0 ||
+        monthsValue <= 0) {
       setState(() => _result = 'Enter valid EMI details');
       return;
     }
 
+    final months = monthsValue.round();
     final monthlyRate = annualRate / 12 / 100;
 
     final emi = monthlyRate == 0
@@ -120,22 +155,13 @@ class _SmartCalculatorState extends State<SmartCalculator> {
     return result;
   }
 
-  void _showResult(String expression, double answer) {
-    final formatted = _format(answer);
-
-    setState(() {
-      _expression = expression;
-      _result = formatted;
-      _history.insert(0, '$expression = $formatted');
-    });
-  }
-
   void _clear() {
+    _firstController.clear();
+    _secondController.clear();
+    _rateController.clear();
+    _monthsController.clear();
+
     setState(() {
-      _firstController.clear();
-      _secondController.clear();
-      _rateController.clear();
-      _monthsController.clear();
       _expression = '';
       _result = '0';
     });
@@ -145,6 +171,8 @@ class _SmartCalculatorState extends State<SmartCalculator> {
     String label,
     TextEditingController controller, {
     String hint = 'Enter value',
+    FocusNode? focusNode,
+    bool nextField = false,
   }) {
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
@@ -156,16 +184,30 @@ class _SmartCalculatorState extends State<SmartCalculator> {
         const SizedBox(height: 8),
         TextField(
           controller: controller,
+          focusNode: focusNode,
+          textInputAction:
+              nextField ? TextInputAction.next : TextInputAction.done,
+          onSubmitted: (_) {
+            if (nextField) {
+              FocusScope.of(context).nextFocus();
+            } else {
+              FocusScope.of(context).unfocus();
+            }
+          },
           keyboardType: const TextInputType.numberWithOptions(
             decimal: true,
             signed: true,
           ),
-          style: const TextStyle(color: Colors.white),
+          style: const TextStyle(color: Colors.white, fontSize: 18),
           decoration: InputDecoration(
             hintText: hint,
             hintStyle: const TextStyle(color: Colors.white38),
             filled: true,
             fillColor: _background,
+            contentPadding: const EdgeInsets.symmetric(
+              horizontal: 16,
+              vertical: 16,
+            ),
             border: OutlineInputBorder(
               borderRadius: BorderRadius.circular(12),
               borderSide: BorderSide.none,
@@ -185,7 +227,7 @@ class _SmartCalculatorState extends State<SmartCalculator> {
           style: ElevatedButton.styleFrom(
             backgroundColor: _card,
             foregroundColor: _cyan,
-            padding: const EdgeInsets.symmetric(vertical: 16),
+            padding: const EdgeInsets.symmetric(vertical: 15),
             shape: RoundedRectangleBorder(
               borderRadius: BorderRadius.circular(12),
               side: BorderSide(color: _cyan.withOpacity(0.35)),
@@ -203,31 +245,92 @@ class _SmartCalculatorState extends State<SmartCalculator> {
     );
   }
 
+  Widget _operationButton(String operation) {
+    final selected = _operation == operation;
+
+    return Expanded(
+      child: Padding(
+        padding: const EdgeInsets.all(4),
+        child: ElevatedButton(
+          onPressed: () {
+            setState(() => _operation = operation);
+          },
+          style: ElevatedButton.styleFrom(
+            backgroundColor: selected ? _cyan : _card,
+            foregroundColor: selected ? _background : _cyan,
+            padding: const EdgeInsets.symmetric(vertical: 15),
+            shape: RoundedRectangleBorder(
+              borderRadius: BorderRadius.circular(12),
+            ),
+          ),
+          child: Text(
+            operation,
+            style: const TextStyle(
+              fontSize: 20,
+              fontWeight: FontWeight.bold,
+            ),
+          ),
+        ),
+      ),
+    );
+  }
+
   Widget _buildBasic() {
     return Column(
+      crossAxisAlignment: CrossAxisAlignment.stretch,
       children: [
-        _input('First Number', _firstController),
+        _input(
+          'First Number',
+          _firstController,
+          nextField: true,
+        ),
         const SizedBox(height: 16),
-        _input('Second Number', _secondController),
-        const SizedBox(height: 18),
+        _input(
+          'Second Number',
+          _secondController,
+          focusNode: _secondFocus,
+        ),
+        const SizedBox(height: 20),
+        Text(
+          'Select Operation',
+          style: TextStyle(color: _cyan, fontSize: 14),
+        ),
+        const SizedBox(height: 8),
         Row(
           children: [
-            _actionButton('+', () => _calculate('+')),
-            _actionButton('-', () => _calculate('-')),
+            _operationButton('+'),
+            _operationButton('-'),
+            _operationButton('×'),
+            _operationButton('÷'),
+            _operationButton('%'),
           ],
         ),
-        Row(
-          children: [
-            _actionButton('×', () => _calculate('×')),
-            _actionButton('÷', () => _calculate('÷')),
-          ],
+        const SizedBox(height: 15),
+        SizedBox(
+          height: 54,
+          child: ElevatedButton(
+            onPressed: () {
+              FocusScope.of(context).unfocus();
+              _calculateBasic();
+            },
+            style: ElevatedButton.styleFrom(
+              backgroundColor: _cyan,
+              foregroundColor: _background,
+              shape: RoundedRectangleBorder(
+                borderRadius: BorderRadius.circular(12),
+              ),
+            ),
+            child: const Text(
+              'CALCULATE  =',
+              style: TextStyle(
+                fontSize: 18,
+                fontWeight: FontWeight.bold,
+              ),
+            ),
+          ),
         ),
-        Row(
-          children: [
-            _actionButton('%', () => _calculate('%')),
-            _actionButton('Clear', _clear),
-          ],
-        ),
+        const SizedBox(height: 8),
+        _actionButton('Clear', _clear),
       ],
     );
   }
@@ -306,10 +409,9 @@ class _SmartCalculatorState extends State<SmartCalculator> {
     return Expanded(
       child: GestureDetector(
         onTap: () {
-          setState(() {
-            _mode = mode;
-            _clear();
-          });
+          FocusScope.of(context).unfocus();
+          _clear();
+          setState(() => _mode = mode);
         },
         child: Container(
           padding: const EdgeInsets.symmetric(vertical: 12),
@@ -369,7 +471,9 @@ class _SmartCalculatorState extends State<SmartCalculator> {
                   crossAxisAlignment: CrossAxisAlignment.end,
                   children: [
                     Text(
-                      _expression.isEmpty ? 'BUJJI AI Calculator' : _expression,
+                      _expression.isEmpty
+                          ? 'BUJJI AI Calculator'
+                          : _expression,
                       style: const TextStyle(
                         color: Colors.white60,
                         fontSize: 14,
