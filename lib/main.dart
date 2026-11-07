@@ -4,6 +4,7 @@ import 'dart:io';
 
 import 'package:flutter/material.dart';
 import 'package:speech_to_text/speech_to_text.dart';
+import 'tools/smart_calculator.dart';
 
 void main() {
   runApp(const BujjiAIApp());
@@ -63,7 +64,6 @@ class _BujjiHomeScreenState extends State<BujjiHomeScreen> {
   bool speechInitialized = false;
   bool isListening = false;
 
-  // Text already present before voice recognition starts.
   String voiceBaseText = '';
 
   final SpeechToText speech = SpeechToText();
@@ -143,7 +143,6 @@ class _BujjiHomeScreenState extends State<BujjiHomeScreen> {
         return;
       }
 
-      // Preserve any text the user has already typed.
       voiceBaseText = messageController.text.trim();
 
       final locale = await speech.systemLocale();
@@ -159,8 +158,6 @@ class _BujjiHomeScreenState extends State<BujjiHomeScreen> {
 
           if (recognized.isEmpty) return;
 
-          // Keep the original typed text and update the
-          // recognized speech without losing the base text.
           final String updatedText = voiceBaseText.isEmpty
               ? recognized
               : '$voiceBaseText $recognized';
@@ -414,9 +411,11 @@ class _BujjiHomeScreenState extends State<BujjiHomeScreen> {
                 Expanded(
                   child: selectedIndex == 0
                       ? _buildHomeContent()
-                      : _buildPlaceholder(),
+                      : selectedIndex == 1
+                          ? const SmartCalculator()
+                          : _buildPlaceholder(),
                 ),
-                _buildComposer(),
+                if (selectedIndex != 1) _buildComposer(),
                 _buildBottomNavigation(),
               ],
             ),
