@@ -1,3 +1,4 @@
+
 import 'dart:async';
 import 'dart:convert';
 import 'dart:io';
@@ -5,6 +6,7 @@ import 'dart:io';
 import 'package:flutter/material.dart';
 import 'package:speech_to_text/speech_to_text.dart';
 import 'tools/smart_calculator.dart';
+import 'tools/tools_home.dart';
 
 void main() {
   runApp(const BujjiAIApp());
@@ -412,7 +414,16 @@ class _BujjiHomeScreenState extends State<BujjiHomeScreen> {
                   child: selectedIndex == 0
                       ? _buildHomeContent()
                       : selectedIndex == 1
-                          ? const SmartCalculator()
+                          ? ToolsHome(
+                              onOpenCalculator: () {
+                                Navigator.of(context).push(
+                                  MaterialPageRoute(
+                                    builder: (context) =>
+                                        const SmartCalculator(),
+                                  ),
+                                );
+                              },
+                            )
                           : _buildPlaceholder(),
                 ),
                 if (selectedIndex != 1) _buildComposer(),
