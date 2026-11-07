@@ -15,6 +15,8 @@ class _SmartCalculatorState extends State<SmartCalculator> {
   final _monthsController = TextEditingController();
 
   final _secondFocus = FocusNode();
+  final _scrollController = ScrollController();
+  final _resultKey = GlobalKey();
 
   String _result = '0';
   String _expression = '';
@@ -35,6 +37,7 @@ class _SmartCalculatorState extends State<SmartCalculator> {
     _rateController.dispose();
     _monthsController.dispose();
     _secondFocus.dispose();
+    _scrollController.dispose();
     super.dispose();
   }
 
@@ -50,7 +53,26 @@ class _SmartCalculatorState extends State<SmartCalculator> {
     return value.toStringAsFixed(2);
   }
 
+  void _scrollToResult() {
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      if (!mounted) return;
+
+      final resultContext = _resultKey.currentContext;
+
+      if (resultContext != null) {
+        Scrollable.ensureVisible(
+          resultContext,
+          duration: const Duration(milliseconds: 450),
+          curve: Curves.easeInOut,
+          alignment: 0.15,
+        );
+      }
+    });
+  }
+
   void _showResult(String expression, double answer) {
+    FocusScope.of(context).unfocus();
+
     final formatted = _format(answer);
 
     setState(() {
@@ -58,6 +80,8 @@ class _SmartCalculatorState extends State<SmartCalculator> {
       _result = formatted;
       _history.insert(0, '$expression = $formatted');
     });
+
+    _scrollToResult();
   }
 
   void _calculateBasic() {
@@ -456,11 +480,13 @@ class _SmartCalculatorState extends State<SmartCalculator> {
       ),
       body: SafeArea(
         child: SingleChildScrollView(
+          controller: _scrollController,
           padding: const EdgeInsets.all(16),
           child: Column(
             crossAxisAlignment: CrossAxisAlignment.stretch,
             children: [
               Container(
+                key: _resultKey,
                 padding: const EdgeInsets.all(20),
                 decoration: BoxDecoration(
                   color: _card,
