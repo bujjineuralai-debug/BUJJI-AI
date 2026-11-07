@@ -93,7 +93,6 @@ class _BujjiHomeScreenState extends State<BujjiHomeScreen> {
     super.dispose();
   }
 
-  // SEND MESSAGE TO CLOUDFLARE AI
   Future<void> sendMessage() async {
     if (isLoading) return;
 
@@ -106,7 +105,6 @@ class _BujjiHomeScreenState extends State<BujjiHomeScreen> {
       return;
     }
 
-    // Keep previous conversation for AI context.
     final List<Map<String, String>> history =
         messages.map((item) => item.toJson()).toList();
 
@@ -117,7 +115,6 @@ class _BujjiHomeScreenState extends State<BujjiHomeScreen> {
           content: message,
         ),
       );
-
       isLoading = true;
     });
 
@@ -175,8 +172,7 @@ class _BujjiHomeScreenState extends State<BujjiHomeScreen> {
         );
       }
 
-      final String reply =
-          decoded['reply']?.toString() ?? '';
+      final String reply = decoded['reply']?.toString() ?? '';
 
       if (reply.trim().isEmpty) {
         throw Exception('AI returned an empty response.');
@@ -278,7 +274,7 @@ class _BujjiHomeScreenState extends State<BujjiHomeScreen> {
         color: const Color(0xDD071426),
         border: Border(
           bottom: BorderSide(
-            color: cyan.withValues(alpha: 0.35),
+            color: cyan.withOpacity(0.35),
           ),
         ),
       ),
@@ -290,12 +286,12 @@ class _BujjiHomeScreenState extends State<BujjiHomeScreen> {
             decoration: BoxDecoration(
               shape: BoxShape.circle,
               border: Border.all(
-                color: cyan.withValues(alpha: 0.65),
+                color: cyan.withOpacity(0.65),
                 width: 1.3,
               ),
               boxShadow: [
                 BoxShadow(
-                  color: cyan.withValues(alpha: 0.20),
+                  color: cyan.withOpacity(0.20),
                   blurRadius: 13,
                 ),
               ],
@@ -344,10 +340,10 @@ class _BujjiHomeScreenState extends State<BujjiHomeScreen> {
               vertical: 9,
             ),
             decoration: BoxDecoration(
-              color: cyan.withValues(alpha: 0.10),
+              color: cyan.withOpacity(0.10),
               borderRadius: BorderRadius.circular(22),
               border: Border.all(
-                color: cyan.withValues(alpha: 0.45),
+                color: cyan.withOpacity(0.45),
               ),
             ),
             child: Row(
@@ -393,15 +389,15 @@ class _BujjiHomeScreenState extends State<BujjiHomeScreen> {
             ),
             borderRadius: BorderRadius.circular(21),
             border: Border.all(
-              color: cyan.withValues(alpha: 0.55),
+              color: cyan.withOpacity(0.55),
             ),
             boxShadow: [
               BoxShadow(
-                color: cyan.withValues(alpha: 0.12),
+                color: cyan.withOpacity(0.12),
                 blurRadius: 22,
               ),
               BoxShadow(
-                color: gold.withValues(alpha: 0.04),
+                color: gold.withOpacity(0.04),
                 blurRadius: 15,
               ),
             ],
@@ -449,8 +445,6 @@ class _BujjiHomeScreenState extends State<BujjiHomeScreen> {
             ],
           ),
         ),
-
-        // CHAT AREA
         Expanded(
           child: messages.isEmpty
               ? const SizedBox()
@@ -495,8 +489,8 @@ class _BujjiHomeScreenState extends State<BujjiHomeScreen> {
           borderRadius: BorderRadius.circular(17),
           border: Border.all(
             color: isUser
-                ? gold.withValues(alpha: 0.45)
-                : cyan.withValues(alpha: 0.35),
+                ? gold.withOpacity(0.45)
+                : cyan.withOpacity(0.35),
           ),
         ),
         child: Text(
@@ -521,7 +515,7 @@ class _BujjiHomeScreenState extends State<BujjiHomeScreen> {
           color: const Color(0xFF0C2035),
           borderRadius: BorderRadius.circular(16),
           border: Border.all(
-            color: cyan.withValues(alpha: 0.35),
+            color: cyan.withOpacity(0.35),
           ),
         ),
         child: Row(
@@ -593,11 +587,11 @@ class _BujjiHomeScreenState extends State<BujjiHomeScreen> {
         color: const Color(0xEE071629),
         borderRadius: BorderRadius.circular(30),
         border: Border.all(
-          color: cyan.withValues(alpha: 0.50),
+          color: cyan.withOpacity(0.50),
         ),
         boxShadow: [
           BoxShadow(
-            color: cyan.withValues(alpha: 0.08),
+            color: cyan.withOpacity(0.08),
             blurRadius: 15,
           ),
         ],
@@ -658,7 +652,7 @@ class _BujjiHomeScreenState extends State<BujjiHomeScreen> {
         color: const Color(0xEE071426),
         border: Border(
           top: BorderSide(
-            color: cyan.withValues(alpha: 0.30),
+            color: cyan.withOpacity(0.30),
           ),
         ),
       ),
@@ -720,7 +714,6 @@ class _BujjiHomeScreenState extends State<BujjiHomeScreen> {
   }
 }
 
-// PREMIUM FUTURISTIC BACKGROUND
 class BujjiBackgroundPainter extends CustomPainter {
   const BujjiBackgroundPainter();
 
@@ -750,9 +743,22 @@ class BujjiBackgroundPainter extends CustomPainter {
     }
 
     final linePaint = Paint()
-      ..color = const Color(0xFF00CFE8).withValues(alpha: 0.17)
+      ..color = const Color(0xFF00CFE8).withOpacity(0.17)
       ..strokeWidth = 0.7;
 
     for (int i = 0; i < points.length; i++) {
       for (int j = i + 1; j < points.length; j++) {
-        final distance = (points[i]
+        final distance = (points[i] - points[j]).distance;
+
+        if (distance < 125) {
+          canvas.drawLine(
+            points[i],
+            points[j],
+            linePaint,
+          );
+        }
+      }
+    }
+
+    final dotPaint = Paint()
+      ..color = const C
