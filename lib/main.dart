@@ -1,3 +1,4 @@
+
 import 'dart:async';
 import 'dart:convert';
 import 'dart:io';
@@ -760,4 +761,20 @@ class BujjiBackgroundPainter extends CustomPainter {
     }
 
     final dotPaint = Paint()
-      ..color = const Co
+      ..color = const Color(0xFF20D9E8).withOpacity(0.55)
+      ..style = PaintingStyle.fill;
+
+    for (final point in points) {
+      canvas.drawCircle(
+        point,
+        1.4,
+        dotPaint,
+      );
+    }
+  }
+
+  @override
+  bool shouldRepaint(covariant BujjiBackgroundPainter oldDelegate) {
+    return false;
+  }
+}
