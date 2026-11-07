@@ -1,8 +1,10 @@
+
 import 'dart:async';
 import 'dart:convert';
 import 'dart:io';
 
 import 'package:flutter/material.dart';
+import 'package:speech_to_text/speech_to_text.dart';
 
 void main() {
   runApp(const BujjiAIApp());
@@ -48,7 +50,8 @@ class BujjiHomeScreen extends StatefulWidget {
   const BujjiHomeScreen({super.key});
 
   @override
-  State<BujjiHomeScreen> createState() => _BujjiHomeScreenState();
+  State<BujjiHomeScreen> createState() =>
+      _BujjiHomeScreenState();
 }
 
 class _BujjiHomeScreenState extends State<BujjiHomeScreen> {
@@ -57,6 +60,11 @@ class _BujjiHomeScreenState extends State<BujjiHomeScreen> {
 
   int selectedIndex = 0;
   bool isLoading = false;
+
+  bool speechInitialized = false;
+  bool isListening = false;
+
+  final SpeechToText speech = SpeechToText();
 
   final TextEditingController messageController =
       TextEditingController();
@@ -87,15 +95,117 @@ class _BujjiHomeScreenState extends State<BujjiHomeScreen> {
 
   @override
   void dispose() {
+    speech.cancel();
     messageController.dispose();
     chatScrollController.dispose();
     super.dispose();
   }
 
+  Future<void> toggleVoiceRecognition() async {
+    if (isLoading) return;
+
+    if (isListening || speech.isListening) {
+      await stopVoiceRecognition();
+      return;
+    }
+
+    try {
+      if (!speechInitialized) {
+        speechInitialized = await speech.initialize(
+          onStatus: (status) {
+            if (!mounted) return;
+
+            setState(() {
+              isListening = status == 'listening';
+            });
+          },
+          onError: (error) {
+            if (!mounted) return;
+
+            setState(() {
+              isListening = false;
+            });
+
+            showMessage(
+              'Voice recognition error: ${error.errorMsg}',
+            );
+          },
+        );
+      }
+
+      if (!speechInitialized) {
+        showMessage(
+          'Speech recognition is unavailable. '
+          'Please check your microphone and speech settings.',
+        );
+        return;
+      }
+
+      final locale = await speech.systemLocale();
+
+      if (!mounted) return;
+
+      await speech.listen(
+        onResult: (result) {
+          if (!mounted) return;
+
+          setState(() {
+            messageController.text =
+                result.recognizedWords;
+
+            messageController.selection =
+                TextSelection.collapsed(
+              offset: messageController.text.length,
+            );
+          });
+        },
+        localeId: locale?.localeId,
+        listenFor: const Duration(seconds: 45),
+        pauseFor: const Duration(seconds: 4),
+        partialResults: true,
+      );
+
+      if (mounted) {
+        setState(() {
+          isListening = speech.isListening;
+        });
+      }
+    } catch (error) {
+      if (!mounted) return;
+
+      setState(() {
+        isListening = false;
+      });
+
+      showMessage(
+        'Unable to start voice recognition: $error',
+      );
+    }
+  }
+
+  Future<void> stopVoiceRecognition() async {
+    try {
+      await speech.stop();
+    } catch (error) {
+      debugPrint('Speech stop error: $error');
+    }
+
+    if (mounted) {
+      setState(() {
+        isListening = false;
+      });
+    }
+  }
+
   Future<void> sendMessage() async {
     if (isLoading) return;
 
-    final String message = messageController.text.trim();
+    if (speech.isListening) {
+      await stopVoiceRecognition();
+    }
+
+    final String message =
+        messageController.text.trim();
 
     if (message.isEmpty) return;
 
@@ -114,6 +224,7 @@ class _BujjiHomeScreenState extends State<BujjiHomeScreen> {
           content: message,
         ),
       );
+
       isLoading = true;
     });
 
@@ -121,7 +232,8 @@ class _BujjiHomeScreenState extends State<BujjiHomeScreen> {
     scrollToBottom();
 
     final HttpClient client = HttpClient();
-    client.connectionTimeout = const Duration(seconds: 20);
+    client.connectionTimeout =
+        const Duration(seconds: 20);
 
     try {
       final Uri uri = Uri.parse(apiUrl);
@@ -132,6 +244,7 @@ class _BujjiHomeScreenState extends State<BujjiHomeScreen> {
       );
 
       request.headers.contentType = ContentType.json;
+
       request.headers.set(
         HttpHeaders.acceptHeader,
         'application/json',
@@ -163,7 +276,8 @@ class _BujjiHomeScreenState extends State<BujjiHomeScreen> {
       } catch (_) {
         throw Exception(
           'HTTP ${response.statusCode}: Invalid JSON response. '
-          'Server response: ${responseBody.isEmpty ? "(empty)" : responseBody.substring(0, responseBody.length > 250 ? 250 : responseBody.length)}',
+          'Server response: '
+          '${responseBody.isEmpty ? "(empty)" : responseBody.substring(0, responseBody.length > 250 ? 250 : responseBody.length)}',
         );
       }
 
@@ -178,18 +292,21 @@ class _BujjiHomeScreenState extends State<BujjiHomeScreen> {
           decoded['success'] != true) {
         final String serverError =
             decoded['error']?.toString() ??
-            decoded['message']?.toString() ??
-            'Unknown server error';
+                decoded['message']?.toString() ??
+                'Unknown server error';
 
         throw Exception(
           'HTTP ${response.statusCode}: $serverError',
         );
       }
 
-      final String reply = decoded['reply']?.toString() ?? '';
+      final String reply =
+          decoded['reply']?.toString() ?? '';
 
       if (reply.trim().isEmpty) {
-        throw Exception('AI returned an empty response.');
+        throw Exception(
+          'AI returned an empty response.',
+        );
       }
 
       if (!mounted) return;
@@ -216,7 +333,9 @@ class _BujjiHomeScreenState extends State<BujjiHomeScreen> {
               ? '${errorDetails.substring(0, 220)}...'
               : errorDetails;
 
-      showMessage('BUJJI AI error: $visibleError');
+      showMessage(
+        'BUJJI AI error: $visibleError',
+      );
     } finally {
       client.close(force: true);
 
@@ -232,7 +351,8 @@ class _BujjiHomeScreenState extends State<BujjiHomeScreen> {
 
   void scrollToBottom() {
     WidgetsBinding.instance.addPostFrameCallback((_) {
-      if (!mounted || !chatScrollController.hasClients) {
+      if (!mounted ||
+          !chatScrollController.hasClients) {
         return;
       }
 
@@ -338,7 +458,8 @@ class _BujjiHomeScreenState extends State<BujjiHomeScreen> {
           const SizedBox(width: 12),
           Expanded(
             child: Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
+              crossAxisAlignment:
+                  CrossAxisAlignment.start,
               children: [
                 const Text(
                   'BUJJI AI',
@@ -398,78 +519,82 @@ class _BujjiHomeScreenState extends State<BujjiHomeScreen> {
   Widget _buildHomeContent() {
     return Column(
       children: [
-        Container(
-          width: double.infinity,
-          margin: const EdgeInsets.fromLTRB(16, 22, 16, 12),
-          padding: const EdgeInsets.all(19),
-          decoration: BoxDecoration(
-            gradient: const LinearGradient(
-              begin: Alignment.topLeft,
-              end: Alignment.bottomRight,
-              colors: [
-                Color(0xE8153652),
-                Color(0xE8091B30),
-                Color(0xE817293F),
-              ],
+        if (messages.isEmpty)
+          Container(
+            width: double.infinity,
+            margin: const EdgeInsets.fromLTRB(
+              16, 22, 16, 12,
             ),
-            borderRadius: BorderRadius.circular(21),
-            border: Border.all(
-              color: cyan.withOpacity(0.55),
-            ),
-            boxShadow: [
-              BoxShadow(
-                color: cyan.withOpacity(0.12),
-                blurRadius: 22,
-              ),
-              BoxShadow(
-                color: gold.withOpacity(0.04),
-                blurRadius: 15,
-              ),
-            ],
-          ),
-          child: Column(
-            crossAxisAlignment: CrossAxisAlignment.start,
-            children: [
-              Row(
-                children: [
-                  Icon(
-                    Icons.waving_hand_rounded,
-                    color: gold,
-                    size: 25,
-                  ),
-                  const SizedBox(width: 10),
-                  const Text(
-                    'Hello, Boss!',
-                    style: TextStyle(
-                      color: Colors.white,
-                      fontSize: 21,
-                      fontWeight: FontWeight.bold,
-                    ),
-                  ),
+            padding: const EdgeInsets.all(19),
+            decoration: BoxDecoration(
+              gradient: const LinearGradient(
+                begin: Alignment.topLeft,
+                end: Alignment.bottomRight,
+                colors: [
+                  Color(0xE8153652),
+                  Color(0xE8091B30),
+                  Color(0xE817293F),
                 ],
               ),
-              const SizedBox(height: 13),
-              Text(
-                'I am BUJJI AI.',
-                style: TextStyle(
-                  color: cyan,
-                  fontSize: 17,
-                  fontWeight: FontWeight.bold,
-                ),
+              borderRadius: BorderRadius.circular(21),
+              border: Border.all(
+                color: cyan.withOpacity(0.55),
               ),
-              const SizedBox(height: 7),
-              const Text(
-                'Your personal assistant is ready. '
-                'How can I help you today?',
-                style: TextStyle(
-                  color: Color(0xFFCBD8E8),
-                  fontSize: 14,
-                  height: 1.5,
+              boxShadow: [
+                BoxShadow(
+                  color: cyan.withOpacity(0.12),
+                  blurRadius: 22,
                 ),
-              ),
-            ],
+                BoxShadow(
+                  color: gold.withOpacity(0.04),
+                  blurRadius: 15,
+                ),
+              ],
+            ),
+            child: Column(
+              crossAxisAlignment:
+                  CrossAxisAlignment.start,
+              children: [
+                Row(
+                  children: [
+                    Icon(
+                      Icons.waving_hand_rounded,
+                      color: gold,
+                      size: 25,
+                    ),
+                    const SizedBox(width: 10),
+                    const Text(
+                      'Hello, Boss!',
+                      style: TextStyle(
+                        color: Colors.white,
+                        fontSize: 21,
+                        fontWeight: FontWeight.bold,
+                      ),
+                    ),
+                  ],
+                ),
+                const SizedBox(height: 13),
+                Text(
+                  'I am BUJJI AI.',
+                  style: TextStyle(
+                    color: cyan,
+                    fontSize: 17,
+                    fontWeight: FontWeight.bold,
+                  ),
+                ),
+                const SizedBox(height: 7),
+                const Text(
+                  'Your personal assistant is ready. '
+                  'How can I help you today?',
+                  style: TextStyle(
+                    color: Color(0xFFCBD8E8),
+                    fontSize: 14,
+                    height: 1.5,
+                  ),
+                ),
+              ],
+            ),
           ),
-        ),
         Expanded(
           child: messages.isEmpty
               ? const SizedBox()
@@ -478,13 +603,16 @@ class _BujjiHomeScreenState extends State<BujjiHomeScreen> {
                   padding: const EdgeInsets.fromLTRB(
                     14, 5, 14, 12,
                   ),
-                  itemCount: messages.length + (isLoading ? 1 : 0),
+                  itemCount:
+                      messages.length + (isLoading ? 1 : 0),
                   itemBuilder: (context, index) {
                     if (index == messages.length) {
                       return _buildTypingIndicator();
                     }
 
-                    return _buildMessageBubble(messages[index]);
+                    return _buildMessageBubble(
+                      messages[index],
+                    );
                   },
                 ),
         ),
@@ -496,11 +624,13 @@ class _BujjiHomeScreenState extends State<BujjiHomeScreen> {
     final bool isUser = message.role == 'user';
 
     return Align(
-      alignment:
-          isUser ? Alignment.centerRight : Alignment.centerLeft,
+      alignment: isUser
+          ? Alignment.centerRight
+          : Alignment.centerLeft,
       child: Container(
         constraints: BoxConstraints(
-          maxWidth: MediaQuery.of(context).size.width * 0.82,
+          maxWidth:
+              MediaQuery.of(context).size.width * 0.82,
         ),
         margin: const EdgeInsets.symmetric(vertical: 6),
         padding: const EdgeInsets.symmetric(
@@ -603,7 +733,9 @@ class _BujjiHomeScreenState extends State<BujjiHomeScreen> {
 
   Widget _buildComposer() {
     return Container(
-      margin: const EdgeInsets.fromLTRB(13, 8, 13, 12),
+      margin: const EdgeInsets.fromLTRB(
+        13, 8, 13, 12,
+      ),
       padding: const EdgeInsets.symmetric(
         horizontal: 10,
         vertical: 5,
@@ -624,12 +756,14 @@ class _BujjiHomeScreenState extends State<BujjiHomeScreen> {
       child: Row(
         children: [
           IconButton(
-            onPressed: () {
-              showMessage('Voice input will be added later.');
-            },
+            onPressed: isLoading
+                ? null
+                : toggleVoiceRecognition,
             icon: Icon(
-              Icons.mic_none_rounded,
-              color: cyan,
+              isListening
+                  ? Icons.mic_rounded
+                  : Icons.mic_none_rounded,
+              color: isListening ? gold : cyan,
             ),
           ),
           Expanded(
@@ -659,7 +793,9 @@ class _BujjiHomeScreenState extends State<BujjiHomeScreen> {
             onPressed: isLoading ? null : sendMessage,
             icon: Icon(
               Icons.send_rounded,
-              color: isLoading ? Colors.white38 : gold,
+              color: isLoading
+                  ? Colors.white38
+                  : gold,
             ),
           ),
         ],
@@ -682,11 +818,13 @@ class _BujjiHomeScreenState extends State<BujjiHomeScreen> {
         ),
       ),
       child: Row(
-        mainAxisAlignment: MainAxisAlignment.spaceAround,
+        mainAxisAlignment:
+            MainAxisAlignment.spaceAround,
         children: List.generate(
           navigationItems.length,
           (index) {
-            final bool isSelected = selectedIndex == index;
+            final bool isSelected =
+                selectedIndex == index;
 
             return Expanded(
               child: InkWell(
@@ -720,12 +858,14 @@ class _BujjiHomeScreenState extends State<BujjiHomeScreen> {
                     ),
                     const SizedBox(height: 6),
                     AnimatedContainer(
-                      duration: const Duration(milliseconds: 200),
+                      duration:
+                          const Duration(milliseconds: 200),
                       height: 3,
                       width: isSelected ? 25 : 0,
                       decoration: BoxDecoration(
                         color: cyan,
-                        borderRadius: BorderRadius.circular(5),
+                        borderRadius:
+                            BorderRadius.circular(5),
                       ),
                     ),
                   ],
@@ -762,8 +902,12 @@ class BujjiBackgroundPainter extends CustomPainter {
     final points = <Offset>[];
 
     for (int i = 0; i < 58; i++) {
-      final x = ((i * 137.5) % 1000) / 1000 * size.width;
-      final y = ((i * 83.7 + 25) % 1000) / 1000 * size.height;
+      final x =
+          ((i * 137.5) % 1000) / 1000 * size.width;
+
+      final y =
+          ((i * 83.7 + 25) % 1000) / 1000 * size.height;
+
       points.add(Offset(x, y));
     }
 
@@ -773,7 +917,8 @@ class BujjiBackgroundPainter extends CustomPainter {
 
     for (int i = 0; i < points.length; i++) {
       for (int j = i + 1; j < points.length; j++) {
-        final distance = (points[i] - points[j]).distance;
+        final distance =
+            (points[i] - points[j]).distance;
 
         if (distance < 125) {
           canvas.drawLine(
@@ -799,7 +944,9 @@ class BujjiBackgroundPainter extends CustomPainter {
   }
 
   @override
-  bool shouldRepaint(covariant BujjiBackgroundPainter oldDelegate) {
+  bool shouldRepaint(
+    covariant BujjiBackgroundPainter oldDelegate,
+  ) {
     return false;
   }
 }
