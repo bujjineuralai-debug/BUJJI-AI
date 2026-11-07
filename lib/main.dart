@@ -1,4 +1,3 @@
-
 import 'dart:async';
 import 'dart:convert';
 import 'dart:io';
@@ -63,6 +62,9 @@ class _BujjiHomeScreenState extends State<BujjiHomeScreen> {
 
   bool speechInitialized = false;
   bool isListening = false;
+
+  // Text already present before voice recognition starts.
+  String voiceBaseText = '';
 
   final SpeechToText speech = SpeechToText();
 
@@ -141,6 +143,9 @@ class _BujjiHomeScreenState extends State<BujjiHomeScreen> {
         return;
       }
 
+      // Preserve any text the user has already typed.
+      voiceBaseText = messageController.text.trim();
+
       final locale = await speech.systemLocale();
 
       if (!mounted) return;
@@ -149,20 +154,32 @@ class _BujjiHomeScreenState extends State<BujjiHomeScreen> {
         onResult: (result) {
           if (!mounted) return;
 
-          setState(() {
-            messageController.text =
-                result.recognizedWords;
+          final String recognized =
+              result.recognizedWords.trim();
 
-            messageController.selection =
-                TextSelection.collapsed(
-              offset: messageController.text.length,
+          if (recognized.isEmpty) return;
+
+          // Keep the original typed text and update the
+          // recognized speech without losing the base text.
+          final String updatedText = voiceBaseText.isEmpty
+              ? recognized
+              : '$voiceBaseText $recognized';
+
+          setState(() {
+            messageController.value = TextEditingValue(
+              text: updatedText,
+              selection: TextSelection.collapsed(
+                offset: updatedText.length,
+              ),
             );
           });
         },
         localeId: locale?.localeId,
-        listenFor: const Duration(seconds: 45),
-        pauseFor: const Duration(seconds: 4),
+        listenFor: const Duration(seconds: 60),
+        pauseFor: const Duration(seconds: 8),
         partialResults: true,
+        listenMode: ListenMode.dictation,
+        cancelOnError: false,
       );
 
       if (mounted) {
