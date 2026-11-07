@@ -1,4 +1,3 @@
-
 import 'dart:async';
 import 'dart:convert';
 import 'dart:io';
@@ -761,4 +760,4 @@ class BujjiBackgroundPainter extends CustomPainter {
     }
 
     final dotPaint = Paint()
-      ..color = const C
+      ..color = const Co
