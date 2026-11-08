@@ -4,6 +4,23 @@ import 'dart:io';
 
 import 'package:flutter/material.dart';
 
+double? convertCurrencyAmount({
+  required double amount,
+  required double fromRate,
+  required double toRate,
+}) {
+  if (!amount.isFinite ||
+      amount < 0 ||
+      !fromRate.isFinite ||
+      fromRate <= 0 ||
+      !toRate.isFinite ||
+      toRate <= 0) {
+    return null;
+  }
+
+  return (amount / fromRate) * toRate;
+}
+
 class CurrencyConverter extends StatefulWidget {
   const CurrencyConverter({super.key});
 
@@ -69,16 +86,15 @@ class _CurrencyConverterState extends State<CurrencyConverter> {
     final fromRate = rates[fromCurrency];
     final toRate = rates[toCurrency];
 
-    if (amount == null ||
-        !amount.isFinite ||
-        amount < 0 ||
-        fromRate == null ||
-        toRate == null ||
-        fromRate == 0) {
+    if (amount == null || fromRate == null || toRate == null) {
       return null;
     }
 
-    return (amount / fromRate) * toRate;
+    return convertCurrencyAmount(
+      amount: amount,
+      fromRate: fromRate,
+      toRate: toRate,
+    );
   }
 
   Future<void> _loadRates() async {
