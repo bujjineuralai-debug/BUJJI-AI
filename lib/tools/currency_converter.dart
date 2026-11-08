@@ -21,6 +21,15 @@ double? convertCurrencyAmount({
   return (amount / fromRate) * toRate;
 }
 
+List<String> supportedCurrencyCodes(Map<String, double> rates) {
+  final codes = rates.entries
+      .where((entry) => entry.value.isFinite && entry.value > 0)
+      .map((entry) => entry.key)
+      .toList()
+    ..sort();
+  return codes;
+}
+
 class CurrencyConverter extends StatefulWidget {
   const CurrencyConverter({super.key});
 
@@ -53,10 +62,7 @@ class _CurrencyConverterState extends State<CurrencyConverter> {
     'BDT': 'Bangladeshi Taka',
   };
 
-  List<String> get availableCurrencies {
-    final codes = rates.keys.toList()..sort();
-    return codes;
-  }
+  List<String> get availableCurrencies => supportedCurrencyCodes(rates);
 
   final TextEditingController amountController =
       TextEditingController(text: '1');
