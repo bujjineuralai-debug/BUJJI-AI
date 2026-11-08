@@ -160,7 +160,7 @@ function languageInstruction(language) {
         ? "Use natural Malayalam script."
         : "Use natural English.";
 
-  return \`IMPORTANT: The latest user message has been detected as \${language}. \${replyStyle} Reply entirely in \${language}, unless the user explicitly asks for translation or another language. Do not follow the language used in older messages when it conflicts with the latest message.\`;
+    return `IMPORTANT: The latest user message has been detected as ${language}. ${replyStyle} Reply entirely in ${language}, unless the user explicitly asks for translation or another language. Do not follow the language used in older messages when it conflicts with the latest message.`;
 }
 
 export default {
