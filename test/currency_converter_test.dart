@@ -43,4 +43,18 @@ void main() {
       expect(result, isNull);
     });
   });
+
+  group('supportedCurrencyCodes', () {
+    test('returns every valid supported currency code in sorted order', () {
+      final codes = supportedCurrencyCodes({
+        'INR': 94.0,
+        'USD': 1.0,
+        'EUR': 0.9,
+        'BAD': 0.0,
+        'NAN': double.nan,
+      });
+
+      expect(codes, ['EUR', 'INR', 'USD']);
+    });
+  });
 }
