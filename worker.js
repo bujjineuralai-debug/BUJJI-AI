@@ -1,50 +1,38 @@
-
 const SYSTEM_PROMPT = `
 You are BUJJI AI, a friendly, intelligent and reliable personal AI assistant.
 
 PERSONALITY:
 - Speak naturally, warmly, patiently and respectfully.
-- Understand Telugu, English, Hindi and Malayalam.
-- Understand Telugu-English mixed language and conversational Romanized Telugu.
+- Support all languages, not only the languages listed in this prompt.
+- Give first-class support to Telugu, English and Hindi; also support Malayalam and other Indian and world languages.
+- Understand mixed-language messages and languages written using Latin letters (Romanized / transliterated text).
 - Never unnecessarily correct the user's grammar or spelling.
 - Give clear, accurate and practical answers.
 - Never pretend to perform actions you cannot perform.
 
-TELUGU UNDERSTANDING:
-- Treat Telugu written using English letters as Telugu, even when spelling is informal or inconsistent.
-- Understand the meaning of the complete sentence, not just individual words.
-- Recognize common spoken Telugu expressions, abbreviations and spelling variations.
-- Understand conversational phrases such as:
-  "Nuvvu ela unnav?" = "నువ్వు ఎలా ఉన్నావు?"
-  "Nenu intiki velthunna" = "నేను ఇంటికి వెళ్తున్నాను."
-  "Naaku ardham kaaledu" = "నాకు అర్థం కాలేదు."
-  "Em chestunnav?" = "ఏం చేస్తున్నావు?"
-  "Manam repu start cheddam" = "మనం రేపు ప్రారంభిద్దాం."
-- Understand the user's actual intention before preparing the answer.
-- Do not simply repeat, transliterate or translate the user's sentence.
-- Answer the question directly and naturally, like a fluent Telugu speaker.
-- When replying to Romanized Telugu, use natural Telugu script.
-- Do not produce awkward Telugu by translating English word by word.
-- If a Telugu sentence is genuinely unclear, politely ask what the user means instead of guessing.
+LANGUAGE UNDERSTANDING:
+- Identify the language and the user's intent from the complete latest message and its context, not from one isolated word.
+- Recognize informal spelling, transliteration, abbreviations and regional conversational expressions.
+- Romanized Telugu must be understood as Telugu and answered in natural Telugu script.
+- Romanized Hindi must be understood as Hindi and answered in natural Devanagari Hindi.
+- Romanized Malayalam must be understood as Malayalam and answered in natural Malayalam script.
+- For every other language, reply in that language and use its normal writing system when you can identify it.
+- If the user mixes languages, normally reply in the main language of the latest message while naturally retaining necessary names or terms.
+- Do not simply repeat, transliterate or translate the user's sentence. Understand the actual intention and answer it.
+- Do not produce awkward translations word by word.
+- If a message is genuinely ambiguous, ask one short clarification question instead of guessing.
 
 STRICT LANGUAGE RULES:
-- Reply in the language of the latest user message, following the detected language instruction.
+- Reply in the language of the latest user message.
 - Do not let previous conversation language override the latest user message.
-- English messages must receive English replies.
-- Telugu messages must receive Telugu replies.
-- Romanized Telugu messages must receive natural Telugu script replies unless the user asks otherwise.
-- Hindi messages must receive Hindi replies in Devanagari script.
-- Malayalam messages must receive Malayalam replies in Malayalam script.
 - Short English greetings such as Hi, Hello, Hey and Hi Bujji must receive English replies.
-- Do not confuse English with Malayalam or Romanized Telugu.
-- If the language is unclear, use English.
+- When the language is uncertain, infer it from context. If it remains unclear, use a brief neutral clarification rather than confidently forcing English.
 
 CONVERSATION:
 - Understand the conversation history when it is provided.
 - Maintain context across messages.
 - Avoid asking users to repeat information already provided.
 - Ask only one clarification question when necessary.
-- Remember the context of the current conversation when answering follow-up questions.
 
 RESPONSE STYLE:
 - Give direct, useful and relevant answers.
@@ -81,57 +69,116 @@ function jsonResponse(data, status = 200) {
   });
 }
 
-// Romanized Telugu detection
-const ROMAN_TELUGU_STRONG_WORDS = new Set([
-  "nuvvu", "nuvve", "meeru", "nenu", "memu", "manam",
-  "naaku", "naku", "neeku", "meeku", "vaallu", "vallu",
-  "ela", "yela", "enti", "emiti", "enduku", "endhuku", "ekkada", "eppudu",
-  "unnav", "unnava", "unnaru", "unnanu", "unnam", "unnayi", "unnai",
-  "bagunnava", "bagunnanu", "bagunnam", "bagundi", "baagundi", "bagundhi",
-  "avunu", "kaadu", "kadu", "kaadhu", "ledu", "ledhu", "undhi", "undi",
-  "cheppu", "cheppandi", "cheppava", "cheyyi", "chey", "cheyyali", "chesa",
-  "chesanu", "chesava", "chestha", "chestanu", "cheddam", "cheddham",
-  "vastanu", "vastava", "vastundi", "vachindi", "vacchindi", "aindi", "ayindi",
-  "vellanu", "vellava", "velthanu", "veldam", "pettu", "pettandi", "ivvu",
-  "ivvandi", "chudu", "choopu", "kavali", "kavaali", "vaddu", "oddu",
+const ROMAN_TELUGU_WORDS = new Set([
+  "nuvvu", "nuvve", "meeru", "nenu", "memu", "manam", "naaku", "naku",
+  "neeku", "meeku", "vaallu", "vallu", "ela", "yela", "enti", "emiti",
+  "enduku", "endhuku", "ekkada", "eppudu", "unnav", "unnava", "unnaru",
+  "unnanu", "unnam", "unnayi", "unnai", "bagunnava", "bagunnanu", "bagundi",
+  "baagundi", "bagundhi", "avunu", "kaadu", "kadu", "kaadhu", "ledu", "ledhu",
+  "undhi", "undi", "cheppu", "cheppandi", "cheppava", "cheyyi", "chey",
+  "cheyyali", "chesa", "chesanu", "chesava", "chestha", "chestanu", "cheddam",
+  "cheddham", "vastanu", "vastava", "vastundi", "vachindi", "vacchindi", "aindi",
+  "ayindi", "vellanu", "vellava", "velthanu", "veldam", "pettu", "pettandi",
+  "ivvu", "ivvandi", "chudu", "choopu", "kavali", "kavaali", "vaddu", "oddu",
   "ippudu", "intiki", "tarvata", "taruvatha", "inka", "telugu", "matladu",
-  "matladandi", "namaskaram", "dhanyavadalu", "parledu", "sare",
+  "matladandi", "namaskaram", "dhanyavadalu", "parledu", "sare", "guru", "anna",
+  "akka", "bujji", "na", "nee", "mee", "mana", "nundi", "nunchi", "tho", "lo",
+  "kosam", "kuda", "kaani", "kani", "mari", "aithe", "ayithe", "ante", "andaru",
+  "andariki", "ippatiki", "appudu", "roju", "manchi", "chala", "baaga", "konchem",
+  "okati", "rendu", "moodu", "ekkadiki", "evaru", "evariki", "emi", "emaina",
+  "chesi", "chesina", "chesuko", "cheyyandi", "avuthundi", "avutundi", "avvali",
+  "avvadha", "avuthundhi", "aipoindi", "aipoyindi", "aipotundi", "aipothundi",
+  "undha", "unnaya", "kudaradu", "kudurutunda", "telusa", "teliyadu", "ardham",
+  "artham", "ayyindi", "sarega", "ledule", "vaddule", "kada", "kadha",
 ]);
 
-const ROMAN_TELUGU_SUPPORT_WORDS = new Set([
-  "guru", "anna", "akka", "bujji", "na", "nee", "mee", "mana", "nundi",
-  "nunchi", "tho", "lo", "ki", "kosam", "kuda", "kaani", "kani", "mari",
-  "aithe", "ayithe", "ante", "andaru", "andariki", "ippatiki", "appudu",
-  "roju", "manchi", "chala", "baaga", "konchem", "inka", "okati", "rendu",
-  "moodu", "ekkadiki", "evaru", "evariki", "emi", "emaina", "leduga",
-  "ledu", "chesi", "chesina", "chesuko", "cheyyandi", "avuthundi", "avutundi",
-  "avvali", "avvadha", "avuthundhi", "vacchindi", "vachindi", "aipoindi",
-  "aipoyindi", "aipotundi", "aipothundi", "undi", "undha", "unnaya",
-  "kaavali", "kavali", "kudaradu", "kudurutunda", "telusa", "teliyadu",
-  "ardham", "artham", "ayyindi", "ayindi", "sarega", "ledule", "vaddule",
+const ROMAN_HINDI_WORDS = new Set([
+  "namaste", "namaskar", "haan", "han", "nahi", "nahin", "main", "mein", "hum",
+  "tum", "aap", "mujhe", "mujhko", "mera", "meri", "mere", "tera", "teri", "aapka",
+  "kaise", "kaisa", "kaisi", "kya", "kyun", "kyon", "kab", "kahan", "kidhar",
+  "hai", "hain", "hoon", "hun", "ho", "tha", "thi", "the", "hoga", "hogi", "honge",
+  "kar", "karo", "karein", "karna", "karunga", "karungi", "chahiye", "sakta", "sakti",
+  "sakte", "raha", "rahi", "rahe", "gaya", "gayi", "gaye", "acha", "accha", "achha",
+  "theek", "thik", "bahut", "bohot", "dhanyavaad", "shukriya", "kripya", "matlab",
+  "samajh", "samjha", "batao", "bolo", "suno", "dekho", "abhi", "phir", "kyunki",
+  "lekin", "aur", "yaar", "bhai", "dost", "ghar", "paani", "kaam", "karo",
 ]);
 
-function detectLanguage(message) {
-  const text = String(message || "").trim();
+const ROMAN_MALAYALAM_WORDS = new Set([
+  "njan", "njaan", "ningal", "ningalkku", "namukku", "enikku", "enikk", "ente",
+  "ninte", "ningalude", "avan", "aval", "ivide", "avide", "evide", "entha", "enthanu",
+  "aano", "aanu", "alla", "ille", "undo", "undu", "illa", "venam", "venda", "mathi",
+  "sukham", "sugham", "nanni", "chetta", "chechi", "etta", "mone", "mole", "poyi",
+  "varum", "vannu", "pokam", "pokan", "kazhicho", "kazhichu", "parayu", "parayoo",
+  "ariyilla", "ariyam", "shari", "sheri", "ippo", "ippol", "pinne", "nalla", "valare",
+  "kurachu", "enthaanu", "engane", "enthina", "ivideya", "samsarikkam",
+]);
 
-  if (!text) return "English";
-  if (/[\u0C00-\u0C7F]/.test(text)) return "Telugu";
-  if (/[\u0900-\u097F]/.test(text)) return "Hindi";
-  if (/[\u0D00-\u0D7F]/.test(text)) return "Malayalam";
-
-  const tokens = text.toLowerCase().match(/[a-z]+/g) || [];
+function scoreWords(tokens, dictionary) {
   let score = 0;
 
   for (const token of tokens) {
-    if (ROMAN_TELUGU_STRONG_WORDS.has(token)) {
-      score += 2;
-    } else if (ROMAN_TELUGU_SUPPORT_WORDS.has(token)) {
+    if (dictionary.has(token)) {
       score += 1;
     }
   }
 
-  if (score >= 2) return "Telugu";
-  return "English";
+  return score;
+}
+
+function detectLanguage(message) {
+  const text = String(message || "").trim();
+
+  if (!text) return "Auto-detect";
+
+  const teluguChars = (text.match(/[\u0C00-\u0C7F]/g) || []).length;
+  const devanagariChars = (text.match(/[\u0900-\u097F]/g) || []).length;
+  const malayalamChars = (text.match(/[\u0D00-\u0D7F]/g) || []).length;
+
+  if (teluguChars > 0 || devanagariChars > 0 || malayalamChars > 0) {
+    if (teluguChars >= devanagariChars && teluguChars >= malayalamChars) {
+      return "Telugu";
+    }
+
+    if (devanagariChars >= malayalamChars) {
+      return "Hindi";
+    }
+
+    return "Malayalam";
+  }
+
+  const tokens = text.toLowerCase().match(/[a-z]+/g) || [];
+
+  if (tokens.length === 0) return "Auto-detect";
+
+  const normalized = tokens.map((token) =>
+    token.replace(/(.)\1{2,}/g, "$1$1")
+  );
+
+  const teluguScore = scoreWords(normalized, ROMAN_TELUGU_WORDS);
+  const hindiScore = scoreWords(normalized, ROMAN_HINDI_WORDS);
+  const malayalamScore = scoreWords(normalized, ROMAN_MALAYALAM_WORDS);
+
+  const highestScore = Math.max(
+    teluguScore,
+    hindiScore,
+    malayalamScore
+  );
+
+  if (highestScore < 2) {
+    const shortText = normalized.join(" ");
+
+    if (/^(hi|hello|hey|hi bujji|hello bujji)$/.test(shortText)) {
+      return "English";
+    }
+
+    return "Auto-detect";
+  }
+
+  if (teluguScore === highestScore) return "Telugu";
+  if (hindiScore === highestScore) return "Hindi";
+
+  return "Malayalam";
 }
 
 function cleanHistory(history) {
@@ -152,15 +199,19 @@ function cleanHistory(history) {
 }
 
 function languageInstruction(language) {
+  if (language === "Auto-detect") {
+    return "IMPORTANT: Detect the language of the latest user message from its complete meaning and context. Reply in that same language, using its normal writing system. Support any language; do not default to English merely because the message uses Latin letters. If it is genuinely ambiguous, ask a brief clarification.";
+  }
+
   const replyStyle = language === "Telugu"
     ? "Use natural Telugu. If the user typed Telugu in Latin letters, reply in Telugu script."
     : language === "Hindi"
-      ? "Use natural Hindi in Devanagari script."
+      ? "Use natural Hindi in Devanagari script, including when the user typed Hindi in Latin letters."
       : language === "Malayalam"
-        ? "Use natural Malayalam script."
+        ? "Use natural Malayalam in Malayalam script, including when the user typed Malayalam in Latin letters."
         : "Use natural English.";
 
-    return `IMPORTANT: The latest user message has been detected as ${language}. ${replyStyle} Reply entirely in ${language}, unless the user explicitly asks for translation or another language. Do not follow the language used in older messages when it conflicts with the latest message.`;
+  return `IMPORTANT: The latest user message has been detected as ${language}. ${replyStyle} Reply entirely in ${language}, unless the user explicitly asks for translation or another language. Do not follow the language used in older messages when it conflicts with the latest message.`;
 }
 
 export default {
@@ -180,7 +231,7 @@ export default {
         status: "online",
         name: "BUJJI AI",
         service: "BUJJI AI API",
-        version: "3.2",
+        version: "3.3",
         model: MODEL,
       });
     }
@@ -204,6 +255,7 @@ export default {
     try {
       if (!env || !env.AI || typeof env.AI.run !== "function") {
         console.error("Cloudflare AI binding is missing:", requestId);
+
         return jsonResponse({
           success: false,
           error: "Cloudflare AI binding is missing.",
@@ -212,6 +264,7 @@ export default {
       }
 
       let body;
+
       try {
         body = await request.json();
       } catch {
@@ -230,7 +283,10 @@ export default {
         }, 400);
       }
 
-      if (typeof body.message !== "string" || body.message.trim().length === 0) {
+      if (
+        typeof body.message !== "string" ||
+        body.message.trim().length === 0
+      ) {
         return jsonResponse({
           success: false,
           error: "Please enter a message.",
@@ -282,6 +338,7 @@ export default {
 
       if (!reply) {
         console.error("BUJJI AI returned an empty response:", requestId);
+
         return jsonResponse({
           success: false,
           error: "AI did not return a valid response.",
