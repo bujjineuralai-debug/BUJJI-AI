@@ -243,7 +243,7 @@ export default {
       if (message.length > MAX_MESSAGE_LENGTH) {
         return jsonResponse({
           success: false,
-          error: \`Message is too long. Maximum \${MAX_MESSAGE_LENGTH} characters.\`,
+          error: `Message is too long. Maximum ${MAX_MESSAGE_LENGTH} characters.`,
           requestId,
         }, 400);
       }
