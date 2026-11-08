@@ -35,7 +35,7 @@ class _CurrencyConverterState extends State<CurrencyConverter> {
   static const Color gold = Color(0xFFFFC857);
   static const String ratesUrl = 'https://open.er-api.com/v6/latest/USD';
 
-  static const Map<String, String> currencies = {
+  static const Map<String, String> currencyNames = {
     'USD': 'US Dollar',
     'INR': 'Indian Rupee',
     'EUR': 'Euro',
@@ -52,6 +52,11 @@ class _CurrencyConverterState extends State<CurrencyConverter> {
     'ZAR': 'South African Rand',
     'BDT': 'Bangladeshi Taka',
   };
+
+  List<String> get availableCurrencies {
+    final codes = rates.keys.toList()..sort();
+    return codes;
+  }
 
   final TextEditingController amountController =
       TextEditingController(text: '1');
@@ -215,40 +220,154 @@ class _CurrencyConverterState extends State<CurrencyConverter> {
         '$hour:$minute $period';
   }
 
+  Future<void> _selectCurrency({
+    required String value,
+    required ValueChanged<String> onChanged,
+  }) async {
+    final searchController = TextEditingController();
+    final selected = await showDialog<String>(
+      context: context,
+      builder: (dialogContext) {
+        var searchText = '';
+        return StatefulBuilder(
+          builder: (context, setDialogState) {
+            final options = availableCurrencies.where((code) {
+              final name = currencyNames[code] ?? '';
+              final query = searchText.trim().toLowerCase();
+              return code.toLowerCase().contains(query) ||
+                  name.toLowerCase().contains(query);
+            }).toList();
+
+            return AlertDialog(
+              backgroundColor: card,
+              title: const Text(
+                'Select currency',
+                style: TextStyle(color: Colors.white),
+              ),
+              content: SizedBox(
+                width: double.maxFinite,
+                height: 420,
+                child: Column(
+                  children: [
+                    TextField(
+                      controller: searchController,
+                      autofocus: true,
+                      style: const TextStyle(color: Colors.white),
+                      decoration: InputDecoration(
+                        hintText: 'Search currency code or name',
+                        hintStyle: const TextStyle(color: Colors.white54),
+                        prefixIcon: const Icon(Icons.search, color: cyan),
+                        enabledBorder: OutlineInputBorder(
+                          borderSide: BorderSide(color: cyan.withOpacity(0.3)),
+                          borderRadius: BorderRadius.circular(12),
+                        ),
+                        focusedBorder: const OutlineInputBorder(
+                          borderSide: BorderSide(color: cyan),
+                        ),
+                      ),
+                      onChanged: (text) =>
+                          setDialogState(() => searchText = text),
+                    ),
+                    const SizedBox(height: 10),
+                    Expanded(
+                      child: options.isEmpty
+                          ? const Center(
+                              child: Text(
+                                'No matching supported currency',
+                                style: TextStyle(color: Colors.white70),
+                              ),
+                            )
+                          : ListView.builder(
+                              itemCount: options.length,
+                              itemBuilder: (context, index) {
+                                final code = options[index];
+                                final name = currencyNames[code];
+                                return ListTile(
+                                  dense: true,
+                                  title: Text(
+                                    code,
+                                    style: const TextStyle(
+                                      color: Colors.white,
+                                      fontWeight: FontWeight.w600,
+                                    ),
+                                  ),
+                                  subtitle: name == null
+                                      ? null
+                                      : Text(
+                                          name,
+                                          style: const TextStyle(
+                                            color: Colors.white60,
+                                          ),
+                                        ),
+                                  trailing: code == value
+                                      ? const Icon(Icons.check, color: cyan)
+                                      : null,
+                                  onTap: () =>
+                                      Navigator.of(dialogContext).pop(code),
+                                );
+                              },
+                            ),
+                    ),
+                  ],
+                ),
+              ),
+            );
+          },
+        );
+      },
+    );
+    searchController.dispose();
+    if (selected != null) onChanged(selected);
+  }
+
   Widget _currencyDropdown({
     required String value,
-    required ValueChanged<String?> onChanged,
+    required ValueChanged<String> onChanged,
   }) {
-    return DropdownButtonFormField<String>(
-      value: value,
-      isExpanded: true,
-      dropdownColor: card,
-      style: const TextStyle(color: Colors.white, fontSize: 14),
-      decoration: InputDecoration(
-        filled: true,
-        fillColor: const Color(0xFF0A1B30),
-        contentPadding:
-            const EdgeInsets.symmetric(horizontal: 13, vertical: 13),
-        enabledBorder: OutlineInputBorder(
+    final name = currencyNames[value];
+    return InkWell(
+      borderRadius: BorderRadius.circular(12),
+      onTap: availableCurrencies.isEmpty
+          ? null
+          : () => _selectCurrency(value: value, onChanged: onChanged),
+      child: Container(
+        padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 15),
+        decoration: BoxDecoration(
+          color: const Color(0xFF0A1B30),
           borderRadius: BorderRadius.circular(12),
-          borderSide: BorderSide(color: cyan.withOpacity(0.25)),
+          border: Border.all(color: cyan.withOpacity(0.25)),
         ),
-        focusedBorder: OutlineInputBorder(
-          borderRadius: BorderRadius.circular(12),
-          borderSide: const BorderSide(color: cyan),
+        child: Row(
+          children: [
+            Expanded(
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Text(
+                    value,
+                    style: const TextStyle(
+                      color: Colors.white,
+                      fontSize: 14,
+                      fontWeight: FontWeight.bold,
+                    ),
+                  ),
+                  if (name != null)
+                    Text(
+                      name,
+                      maxLines: 1,
+                      overflow: TextOverflow.ellipsis,
+                      style: const TextStyle(
+                        color: Colors.white60,
+                        fontSize: 10,
+                      ),
+                    ),
+                ],
+              ),
+            ),
+            const Icon(Icons.arrow_drop_down, color: cyan),
+          ],
         ),
       ),
-      items: currencies.entries
-          .map(
-            (entry) => DropdownMenuItem<String>(
-              value: entry.key,
-              child: Text('${entry.key} - ${entry.value}'),
-            ),
-          )
-          .toList(),
-      onChanged: (next) {
-        if (next != null) onChanged(next);
-      },
     );
   }
 
@@ -285,7 +404,7 @@ class _CurrencyConverterState extends State<CurrencyConverter> {
                     child: _currencyDropdown(
                       value: fromCurrency,
                       onChanged: (value) =>
-                          setState(() => fromCurrency = value!),
+                          setState(() => fromCurrency = value),
                     ),
                   ),
                   IconButton(
@@ -298,7 +417,7 @@ class _CurrencyConverterState extends State<CurrencyConverter> {
                     child: _currencyDropdown(
                       value: toCurrency,
                       onChanged: (value) =>
-                          setState(() => toCurrency = value!),
+                          setState(() => toCurrency = value),
                     ),
                   ),
                 ],
