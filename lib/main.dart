@@ -885,9 +885,24 @@ class _BujjiHomeScreenState extends State<BujjiHomeScreen> {
           'Ask questions and get help from BUJJI AI.',
         ),
         _buildExploreCard(
-          Icons.grid_view_rounded,
-          'Smart Tools',
-          'Open the Tools tab to use helpful utilities.',
+          Icons.mail_outline_rounded,
+          'Letters & Emails',
+          'Write clear letters and professional emails.',
+        ),
+        _buildExploreCard(
+          Icons.chat_bubble_outline_rounded,
+          'WhatsApp Messages',
+          'Create friendly, thoughtful WhatsApp messages.',
+        ),
+        _buildExploreCard(
+          Icons.campaign_outlined,
+          'Social Media Captions',
+          'Create engaging captions for your social posts.',
+        ),
+        _buildExploreCard(
+          Icons.auto_stories_rounded,
+          'Stories & Poems',
+          'Create imaginative stories and beautiful poems.',
         ),
         _buildExploreCard(
           Icons.translate_rounded,
