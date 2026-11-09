@@ -92,6 +92,10 @@ const ROMAN_TELUGU_WORDS = new Set([
   "artham", "ayyindi", "sarega", "ledule", "vaddule", "kada", "kadha",
 ]);
 
+const ROMAN_TELUGU_SINGLE_WORDS = new Set([
+  "sare", "avunu", "kaadu", "kadu", "kaadhu", "ledu", "ledhu",
+]);
+
 const ROMAN_HINDI_WORDS = new Set([
   "namaste", "namaskar", "haan", "han", "nahi", "nahin", "main", "mein", "hum",
   "tum", "aap", "mujhe", "mujhko", "mera", "meri", "mere", "tera", "teri", "aapka",
@@ -170,6 +174,13 @@ function detectLanguage(message) {
 
     if (/^(hi|hello|hey|hi bujji|hello bujji)$/.test(shortText)) {
       return "English";
+    }
+
+    if (
+      normalized.length === 1 &&
+      ROMAN_TELUGU_SINGLE_WORDS.has(normalized[0])
+    ) {
+      return "Telugu";
     }
 
     return "Auto-detect";
