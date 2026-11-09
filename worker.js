@@ -364,29 +364,44 @@ export default {
       }
 
       if (!env || !env.AI || typeof env.AI.run !== "function") {
-        return jsonResponse({ success: false, error: "Cloudflare AI binding is missing." }, 500);
+        return jsonResponse({
+          success: false,
+          error: "Cloudflare AI binding is missing. Check the Worker AI binding.",
+        }, 500);
       }
+
+      const requestId = crypto.randomUUID();
 
       try {
         const body = await request.json();
         if (!body || typeof body !== "object" || Array.isArray(body)) {
-          return jsonResponse({ success: false, error: "Invalid request body." }, 400);
+          return jsonResponse({ success: false, error: "Invalid request body.", requestId }, 400);
         }
 
         const image = typeof body.image === "string" ? body.image : "";
         const question = typeof body.question === "string" ? body.question.trim() : "";
 
         if (!/^data:image\/(jpeg|jpg|png|webp);base64,/.test(image)) {
-          return jsonResponse({ success: false, error: "A valid image is required." }, 400);
+          return jsonResponse({ success: false, error: "A valid image is required.", requestId }, 400);
         }
 
         if (image.length > 7000000) {
-          return jsonResponse({ success: false, error: "Image is too large. Maximum image size is 5 MB." }, 413);
+          return jsonResponse({
+            success: false,
+            error: "Image is too large. Maximum image size is 5 MB.",
+            requestId,
+          }, 413);
         }
 
         if (!question || question.length > 1200) {
-          return jsonResponse({ success: false, error: "A question is required (maximum 1200 characters)." }, 400);
+          return jsonResponse({
+            success: false,
+            error: "A question is required (maximum 1200 characters).",
+            requestId,
+          }, 400);
         }
+
+        console.log("BUJJI Vision request started:", requestId);
 
         const result = await env.AI.run("@cf/moondream/moondream3.1-9B-A2B", {
           task: "query",
@@ -403,15 +418,24 @@ export default {
           : "";
 
         if (!answer) {
-          return jsonResponse({ success: false, error: "Vision model returned an empty response." }, 502);
+          console.error("BUJJI Vision returned an empty response:", requestId);
+          return jsonResponse({
+            success: false,
+            error: "Vision model returned an empty response.",
+            requestId,
+          }, 502);
         }
 
-        return jsonResponse({ success: true, answer });
+        console.log("BUJJI Vision response successful:", requestId);
+        return jsonResponse({ success: true, answer, requestId });
       } catch (error) {
-        console.error("BUJJI Vision Error:", error);
+        const detail = error instanceof Error ? error.message : String(error);
+        console.error("BUJJI Vision Error:", requestId, error);
         return jsonResponse({
           success: false,
-          error: "Photo analysis is temporarily unavailable. Please try again later.",
+          error: "Photo analysis failed.",
+          detail: detail.slice(0, 300),
+          requestId,
         }, 502);
       }
     }
