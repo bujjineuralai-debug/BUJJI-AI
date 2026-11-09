@@ -180,7 +180,7 @@ function detectLanguage(message) {
   if (tokens.length === 0) return "Auto-detect";
 
   const normalized = tokens.map((token) =>
-    token.replace(/(.)\\1{2,}/g, "$1$1")
+    token.replace(/(.)\1{2,}/g, "$1$1")
   );
   const shortText = normalized.join(" ");
 
