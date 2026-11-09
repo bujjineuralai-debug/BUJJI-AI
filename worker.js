@@ -7,6 +7,12 @@ PERSONALITY:
 - Give first-class support to Telugu, English and Hindi; also support Malayalam and other Indian and world languages.
 - Understand mixed-language messages and languages written using Latin letters (Romanized / transliterated text).
 - Never unnecessarily correct the user's grammar or spelling.
+- Recognize regional dialects, colloquial speech, slang, idioms and informal expressions instead of treating them as errors.
+- For Telugu, understand Telangana, Uttarandhra, Coastal Andhra/Godavari and Rayalaseema varieties, Hyderabad Telugu, and youth slang.
+- When the user's Telugu dialect is clear, mirror it naturally and lightly. Do not exaggerate, stereotype, mock, or force slang.
+- Use multiple language clues and conversation context before inferring a regional dialect. A single generic word is not enough.
+- If the dialect is unclear, use friendly, natural conversational Telugu while still understanding the user's slang.
+- If a local slang expression is unfamiliar or genuinely ambiguous, ask what it means rather than inventing a definition.
 - Give clear, accurate and practical answers.
 - Never pretend to perform actions you cannot perform.
 
@@ -113,6 +119,25 @@ const ROMAN_TELUGU_WORDS = new Set([
 const ROMAN_TELUGU_SINGLE_WORDS = new Set([
   "sare", "avunu", "kaadu", "kadu", "kaadhu", "ledu", "ledhu",
 ]);
+
+const TELUGU_DIALECT_MARKERS = {
+  Telangana: {
+    markers: ["ఎట్లా", "ఎట్లున్నావ్", "ఏందిరా", "గిట్లా", "గట్లా", "చేస్తున్నావ్", "పోతున్నావ్", "వస్తున్నావ్", "etla", "etlaa", "endira", "gitla", "gatla", "jestunnav", "chestunnav", "potunnav", "vastunnav"],
+    strong: ["ఎట్లున్నావ్", "ఏందిరా", "గిట్లా", "ఎట్లా", "endira", "gitla", "etla", "etlaa"],
+  },
+  Rayalaseema: {
+    markers: ["యాడ", "వస్తివా", "పోతివా", "చేస్తివా", "yad", "vastiva", "potiva", "chestiva"],
+    strong: ["యాడ", "yad", "వస్తివా", "పోతివా", "vastiva", "potiva"],
+  },
+  Uttarandhra: {
+    markers: ["ఏటయ్యా", "ఏటి", "ఏమంటివి", "etayya", "yeti", "emantivi"],
+    strong: ["ఏటయ్యా", "etayya"],
+  },
+  "Coastal/Godavari": {
+    markers: ["ఏమండోయ్", "ఏంటండోయ్", "emandoi", "entandoi"],
+    strong: ["ఏమండోయ్", "ఏంటండోయ్", "emandoi", "entandoi"],
+  },
+};
 
 const ROMAN_HINDI_WORDS = new Set([
   "namaste", "namaskar", "haan", "han", "nahi", "nahin", "main", "mein", "hum",
@@ -237,6 +262,43 @@ function detectLanguage(message) {
   return "Malayalam";
 }
 
+function detectTeluguDialect(message) {
+  const tokens = String(message || "").toLowerCase().match(/[a-z]+|[\\u0C00-\\u0C7F]+/g) || [];
+  if (tokens.length === 0) return null;
+
+  const tokenSet = new Set(tokens);
+  const normalizedText = ` ${tokens.join(" ")} `;
+  let bestDialect = null;
+  let bestScore = 0;
+
+  for (const [dialect, data] of Object.entries(TELUGU_DIALECT_MARKERS)) {
+    let score = 0;
+
+    for (const marker of data.markers) {
+      const markerTokens = marker.toLowerCase().match(/[a-z]+|[\\u0C00-\\u0C7F]+/g) || [];
+      const matched = markerTokens.length > 1
+        ? normalizedText.includes(` ${markerTokens.join(" ")} `)
+        : tokenSet.has(markerTokens[0]);
+
+      if (matched) score += 1;
+    }
+
+    const hasStrongMarker = data.strong.some((marker) => {
+      const markerTokens = marker.toLowerCase().match(/[a-z]+|[\\u0C00-\\u0C7F]+/g) || [];
+      return markerTokens.length > 1
+        ? normalizedText.includes(` ${markerTokens.join(" ")} `)
+        : tokenSet.has(markerTokens[0]);
+    });
+
+    if ((score >= 2 || hasStrongMarker) && score > bestScore) {
+      bestDialect = dialect;
+      bestScore = score;
+    }
+  }
+
+  return bestDialect;
+}
+
 function cleanHistory(history) {
   if (!Array.isArray(history)) return [];
 
@@ -254,7 +316,7 @@ function cleanHistory(history) {
     }));
 }
 
-function languageInstruction(language) {
+function languageInstruction(language, dialect = null) {
   if (language === "Auto-detect") {
     return "IMPORTANT: Identify the language of the latest user message itself, including its meaning, grammar, and common words. Reply in that same language and its normal writing system. Support as many languages as possible, including languages written in Latin letters and mixed-language messages. Use earlier conversation only to resolve genuine ambiguity; NEVER let an older message language override a clearly identifiable latest message. If the latest message is clearly English, reply in English even when all earlier messages were in another language. If genuinely ambiguous, ask one brief clarification.";
   }
@@ -267,7 +329,13 @@ function languageInstruction(language) {
         ? "Use natural Malayalam in Malayalam script, including when the user typed Malayalam in Latin letters."
         : "Use natural English.";
 
-  return `IMPORTANT: The latest user message has been detected as ${language}. ${replyStyle} Reply entirely in ${language}, unless the user explicitly asks for translation or another language. Do not follow the language used in older messages when it conflicts with the latest message.`;
+  const dialectGuidance = language === "Telugu"
+    ? dialect
+      ? ` The user's Telugu shows clues of ${dialect} Telugu. Mirror this dialect naturally and respectfully without exaggerating it.`
+      : " No regional dialect is confidently identified by the keyword hints. Use natural conversational Telugu, understand the user's colloquial words, and infer a dialect from the full message only when the evidence is clear."
+    : "";
+
+  return `IMPORTANT: The latest user message has been detected as ${language}. ${replyStyle} Reply entirely in ${language}, unless the user explicitly asks for translation or another language. Do not follow the language used in older messages when it conflicts with the latest message.${dialectGuidance}`;
 }
 
 export default {
@@ -362,6 +430,7 @@ export default {
 
       const history = cleanHistory(body.history);
       const language = detectLanguage(message);
+      const dialect = language === "Telugu" ? detectTeluguDialect(message) : null;
 
       const messages = [
         {
@@ -371,7 +440,7 @@ export default {
         ...history,
         {
           role: "system",
-          content: languageInstruction(language),
+          content: languageInstruction(language, dialect),
         },
         {
           role: "user",
@@ -381,6 +450,7 @@ export default {
 
       console.log("BUJJI AI request started:", requestId);
       console.log("Detected language:", language);
+      if (dialect) console.log("Detected Telugu dialect hint:", dialect);
 
       const result = await env.AI.run(MODEL, {
         messages,
