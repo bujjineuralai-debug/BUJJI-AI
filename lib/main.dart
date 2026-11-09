@@ -1310,8 +1310,14 @@ dates, addresses, or contact details. Use clear placeholders such as
   void showNotice(String message) {
     ScaffoldMessenger.of(context).showSnackBar(
       SnackBar(
-        content: Text(message),
-        backgroundColor: const Color(0xFF142B42),
+        content: Text(
+          message,
+          style: const TextStyle(
+            color: Color(0xFF142B42),
+            fontWeight: FontWeight.w600,
+          ),
+        ),
+        backgroundColor: Colors.white,
       ),
     );
   }
