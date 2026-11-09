@@ -1,0 +1,89 @@
+import 'dart:convert';
+import 'dart:io';
+import 'package:audioplayers/audioplayers.dart';
+import 'package:flutter/material.dart';
+import 'package:flutter/services.dart';
+import 'package:google_mlkit_text_recognition/google_mlkit_text_recognition.dart';
+import 'package:image_picker/image_picker.dart';
+import 'package:path_provider/path_provider.dart';
+import 'package:record/record.dart';
+
+const _bg=Color(0xFF071426), _panel=Color(0xFF10243D), _cyan=Color(0xFF00D9FF), _gold=Color(0xFFFFC857);
+const _api='https://bujji-ai-api.bujji-neural-ai.workers.dev';
+
+class _Page extends StatelessWidget {
+  final String title, intro; final Widget child;
+  const _Page(this.title,this.intro,this.child);
+  @override Widget build(BuildContext c)=>Scaffold(backgroundColor:_bg,appBar:AppBar(backgroundColor:_bg,foregroundColor:Colors.white,title:Text(title)),body:SafeArea(child:SingleChildScrollView(padding:const EdgeInsets.all(18),child:Column(crossAxisAlignment:CrossAxisAlignment.start,children:[Text(intro,style:const TextStyle(color:Colors.white70,height:1.5)),const SizedBox(height:18),child]))));
+}
+Widget _panel(Widget child)=>Container(width:double.infinity,padding:const EdgeInsets.all(16),decoration:BoxDecoration(color:_panel,borderRadius:BorderRadius.circular(18),border:Border.all(color:_cyan.withOpacity(.2))),child:child);
+Widget _button(String label,IconData icon,VoidCallback? action,{bool busy=false})=>SizedBox(width:double.infinity,child:ElevatedButton.icon(onPressed:busy?null:action,icon:busy?const SizedBox(width:18,height:18,child:CircularProgressIndicator(strokeWidth:2)):Icon(icon),label:Text(label),style:ElevatedButton.styleFrom(backgroundColor:_cyan,foregroundColor:_bg,padding:const EdgeInsets.symmetric(vertical:14))));
+
+class BrainChallengeScreen extends StatefulWidget { const BrainChallengeScreen({super.key}); @override State<BrainChallengeScreen> createState()=>_BrainChallengeScreenState(); }
+class _BrainChallengeScreenState extends State<BrainChallengeScreen>{
+ final qs=<Map<String,Object>>[
+ {'q':'What comes next? 2, 4, 8, 16, ...','a':['18','24','32','30'],'c':2,'why':'ప్రతి సంఖ్యను 2తో గుణిస్తున్నాం.'},
+ {'q':'Which one is different?','a':['Apple','Mango','Carrot','Banana'],'c':2,'why':'Carrot ఒక కూరగాయ; మిగతావి పండ్లు.'},
+ {'q':'A clock shows 3:00. What is the angle between its hands?','a':['45°','90°','120°','180°'],'c':1,'why':'3 గంటలకు కోణం 90 డిగ్రీలు.'},
+ {'q':'5 machines make 5 toys in 5 minutes. 100 machines make 100 toys in how many minutes?','a':['5','20','100','1'],'c':0,'why':'ప్రతి యంత్రం 5 నిమిషాల్లో ఒక బొమ్మ చేస్తుంది.'},
+ {'q':'Which number is the odd one out?','a':['9','16','25','30'],'c':3,'why':'9, 16, 25 perfect squares; 30 కాదు.'},
+ {'q':'You have 3 apples and take away 2. How many do you have?','a':['1','2','3','5'],'c':1,'why':'నువ్వు తీసుకున్నవి 2 కాబట్టి నీ దగ్గర 2 ఉంటాయి.'},
+ {'q':'What is half of one quarter of 80?','a':['5','10','20','40'],'c':1,'why':'80లో నాలుగో వంతు 20; దాని సగం 10.'},
+ {'q':'1, 1, 2, 3, 5, 8, ... What comes next?','a':['11','12','13','15'],'c':2,'why':'మునుపటి రెండు సంఖ్యలను కలుపుతాం.'},
+ {'q':'Which is heavier: 1 kg iron or 1 kg cotton?','a':['Iron','Cotton','Both equal','Cannot tell'],'c':2,'why':'రెండింటి బరువు 1 కిలోగ్రామే.'},
+ {'q':'17 sheep; all but 9 run away. How many remain?','a':['8','9','17','0'],'c':1,'why':'9 మినహా మిగతావి వెళ్లిపోయాయి.'}];
+ int n=0,score=0; int? selected; bool done=false;
+ void answer(int i){if(selected!=null)return;setState(()=>{selected=i,if(i==qs[n]['c'])score++});}
+ void next(){setState(()=>{if(n==9){done=true;}else{n++;selected=null;}});}
+ void reset()=>setState(()=>{n=0,score=0,selected=null,done=false});
+ @override Widget build(BuildContext c)=>_Page('Brain Challenge','రోజూ చిన్న ప్రశ్నలతో నీ ఆలోచనా శక్తికి పరీక్ష పెట్టు.',_panel(done?Column(children:[const Icon(Icons.emoji_events,color:_gold,size:60),const Text('Challenge complete!',style:TextStyle(color:Colors.white,fontSize:22)),Text('నీ స్కోర్: '+score.toString()+' / 10',style:const TextStyle(color:_cyan,fontSize:20)),_button('Play Again',Icons.refresh,reset)]):Column(crossAxisAlignment:CrossAxisAlignment.start,children:[
+ Text('Question '+(n+1).toString()+' of 10',style:const TextStyle(color:_gold,fontWeight:FontWeight.bold)),const SizedBox(height:10),LinearProgressIndicator(value:(n+1)/10,color:_cyan),const SizedBox(height:18),Text(qs[n]['q'] as String,style:const TextStyle(color:Colors.white,fontSize:18)),
+ const SizedBox(height:12),...List.generate(4,(i){final opts=qs[n]['a'] as List<String>;final correct=qs[n]['c'] as int;Color col=Colors.white12;if(selected!=null&&i==correct)col=Colors.green.withOpacity(.35);if(selected==i&&i!=correct)col=Colors.red.withOpacity(.35);return Padding(padding:const EdgeInsets.only(bottom:8),child:InkWell(onTap:selected==null?()=>answer(i):null,child:Container(width:double.infinity,padding:const EdgeInsets.all(14),decoration:BoxDecoration(color:col,borderRadius:BorderRadius.circular(12)),child:Text(String.fromCharCode(65+i)+'. '+opts[i],style:const TextStyle(color:Colors.white)))));}),
+ if(selected!=null)...[Text(selected==qs[n]['c']?'Correct!':'Correct answer: '+(qs[n]['a'] as List<String>)[qs[n]['c'] as int],style:const TextStyle(color:_gold,fontWeight:FontWeight.bold)),Text(qs[n]['why'] as String,style:const TextStyle(color:Colors.white70)),_button(n==9?'See Result':'Next Question',Icons.arrow_forward,next)],Text('Score: '+score.toString(),style:const TextStyle(color:Colors.white54))
+ ])));
+}
+
+class _VisionPage extends StatefulWidget{final bool room;const _VisionPage(this.room);@override State<_VisionPage> createState()=>_VisionPageState();}
+class _VisionPageState extends State<_VisionPage>{
+ final picker=ImagePicker();File? photo;String answer='';bool busy=false;
+ void msg(String s){if(mounted)ScaffoldMessenger.of(context).showSnackBar(SnackBar(content:Text(s)));}
+ Future<void> pick(ImageSource source)async{try{final f=await picker.pickImage(source:source,maxWidth:1280,imageQuality:72);if(f!=null&&mounted)setState(()=>{photo=File(f.path),answer=''});}catch(_){msg('ఫోటో తెరవలేకపోయాను.');}}
+ Future<void> analyze()async{if(photo==null||busy)return;setState(()=>busy=true);HttpClient? client;try{final bytes=await photo!.readAsBytes();if(bytes.length>5*1024*1024){msg('ఫోటో 5 MB కంటే తక్కువగా ఉండాలి.');return;}final prompt=widget.room?'Analyze this room photo. Reply in simple Telugu. Suggest furniture layout, lighting, wall colours, storage and low-budget improvements. Do not invent details.':'Identify the main object in this photo. Reply in simple Telugu. Explain what it is and its common use. If uncertain, say so.';client=HttpClient()..connectionTimeout=const Duration(seconds:20);final req=await client.postUrl(Uri.parse(_api+'/vision')).timeout(const Duration(seconds:25));req.headers.contentType=ContentType.json;req.add(utf8.encode(jsonEncode({'image':'data:image/jpeg;base64,'+base64Encode(bytes),'question':prompt})));final res=await req.close().timeout(const Duration(seconds:60));final data=jsonDecode(await res.transform(utf8.decoder).join()) as Map<String,dynamic>;if(res.statusCode!=200||data['success']!=true)throw Exception();if(mounted)setState(()=>answer=(data['answer']??'').toString());}catch(_){msg('విశ్లేషణ అందుబాటులో లేదు. Internet లేదా ఉచిత AI పరిమితిని తనిఖీ చేయండి.');}finally{client?.close(force:true);if(mounted)setState(()=>busy=false);}}
+ @override Widget build(BuildContext c)=>_Page(widget.room?'Room Designer':'What Is This?',widget.room?'గది ఫోటో ఆధారంగా రంగులు, ఫర్నిచర్ అమరిక, లైటింగ్ మరియు తక్కువ ఖర్చుతో మెరుగుదలలపై సూచనలు పొందు.':'వస్తువు ఫోటో తీసి లేదా గ్యాలరీ నుంచి ఎంచుకుని దాని గురించి తెలుసుకో.',Column(children:[
+ _panel(Column(children:[if(photo!=null)ClipRRect(borderRadius:BorderRadius.circular(12),child:Image.file(photo!,height:220,width:double.infinity,fit:BoxFit.cover))else SizedBox(height:170,child:Center(child:Icon(widget.room?Icons.chair_alt:Icons.photo_camera_back,color:_cyan,size:60))),Row(children:[Expanded(child:OutlinedButton.icon(onPressed:busy?null:()=>pick(ImageSource.camera),icon:const Icon(Icons.camera_alt),label:const Text('Camera'))),Expanded(child:OutlinedButton.icon(onPressed:busy?null:()=>pick(ImageSource.gallery),icon:const Icon(Icons.photo_library),label:const Text('Gallery')))]),_button(widget.room?'Design My Room':'Identify This',Icons.auto_awesome,photo==null?null:analyze,busy:busy)])),
+ if(answer.isNotEmpty)...[const SizedBox(height:14),_panel(SelectableText(answer,style:const TextStyle(color:Colors.white,height:1.5)))],
+ const Text('విశ్లేషణ కోసం చిత్రం BUJJI AI సర్వర్‌కు పంపబడుతుంది. ఉచిత పరిమితి ముగిస్తే సేవ తాత్కాలికంగా ఆగవచ్చు.',style:TextStyle(color:Colors.white54,fontSize:12))
+ ]));
+}
+class WhatIsThisScreen extends StatelessWidget{const WhatIsThisScreen({super.key});@override Widget build(BuildContext c)=>const _VisionPage(false);}
+class RoomDesignerScreen extends StatelessWidget{const RoomDesignerScreen({super.key});@override Widget build(BuildContext c)=>const _VisionPage(true);}
+
+class HandwritingToTextScreen extends StatefulWidget{const HandwritingToTextScreen({super.key});@override State<HandwritingToTextScreen> createState()=>_HandwritingToTextScreenState();}
+class _HandwritingToTextScreenState extends State<HandwritingToTextScreen>{
+ final picker=ImagePicker();final recognizer=TextRecognizer(script:TextRecognitionScript.latin);File? photo;String result='';bool busy=false;
+ Future<void> scan(ImageSource source)async{try{final f=await picker.pickImage(source:source,maxWidth:1800,imageQuality:85);if(f==null||!mounted)return;setState(()=>{photo=File(f.path),result='',busy=true});final r=await recognizer.processImage(InputImage.fromFilePath(f.path));if(mounted)setState(()=>{result=r.text,busy=false});if(r.text.trim().isEmpty&&mounted)ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content:Text('టెక్స్ట్ గుర్తించలేకపోయాను.')));}catch(_){if(mounted)setState(()=>busy=false);}}
+ @override void dispose(){recognizer.close();super.dispose();}
+ @override Widget build(BuildContext c)=>_Page('Handwriting to Text','చేతిరాత ఉన్న పేజీని ఫోటో తీసి లేదా గ్యాలరీ నుంచి ఎంచుకుని టెక్స్ట్‌గా మార్చుకో.',Column(children:[
+ _panel(Column(children:[if(photo!=null)Image.file(photo!,height:180,width:double.infinity,fit:BoxFit.cover)else const SizedBox(height:120,child:Center(child:Icon(Icons.document_scanner,color:_cyan,size:58))),Row(children:[Expanded(child:OutlinedButton.icon(onPressed:busy?null:()=>scan(ImageSource.camera),icon:const Icon(Icons.camera_alt),label:const Text('Camera'))),Expanded(child:OutlinedButton.icon(onPressed:busy?null:()=>scan(ImageSource.gallery),icon:const Icon(Icons.photo_library),label:const Text('Gallery')))]),if(busy)const CircularProgressIndicator(color:_cyan)])),
+ if(result.isNotEmpty)...[const SizedBox(height:14),_panel(Column(crossAxisAlignment:CrossAxisAlignment.start,children:[const Text('Recognized Text',style:TextStyle(color:_cyan)),SelectableText(result,style:const TextStyle(color:Colors.white)),_button('Copy Text',Icons.copy,()async{await Clipboard.setData(ClipboardData(text:result));if(c.mounted)ScaffoldMessenger.of(c).showSnackBar(const SnackBar(content:Text('Text copied')));})]))],
+ const Text('గమనిక: ప్రస్తుతం Latin/English అక్షరాలను మాత్రమే గుర్తిస్తుంది. తెలుగు చేతిరాతకు మద్దతు లేదు; చేతిరాత ఫలితాలు స్పష్టతపై ఆధారపడి ఉంటాయి.',style:TextStyle(color:Colors.white54,fontSize:12))
+ ]));
+}
+
+class VoiceStudioScreen extends StatefulWidget{const VoiceStudioScreen({super.key});@override State<VoiceStudioScreen> createState()=>_VoiceStudioScreenState();}
+class _VoiceStudioScreenState extends State<VoiceStudioScreen>{
+ final recorder=AudioRecorder();final player=AudioPlayer();String? path;bool recording=false,playing=false;String status='రికార్డింగ్ ప్రారంభించడానికి బటన్ నొక్కండి.';
+ void msg(String s){if(mounted)ScaffoldMessenger.of(context).showSnackBar(SnackBar(content:Text(s)));}
+ Future<void> start()async{try{if(!await recorder.hasPermission()){msg('Microphone permission అవసరం.');return;}final d=await getApplicationDocumentsDirectory();final p=d.path+'/bujji_voice_'+DateTime.now().millisecondsSinceEpoch.toString()+'.wav';await recorder.start(const RecordConfig(encoder:AudioEncoder.wav),path:p);if(mounted)setState(()=>{path=p,recording=true,status='Recording...'});}catch(_){msg('రికార్డింగ్ ప్రారంభించలేకపోయాను.');}}
+ Future<void> stop()async{try{final p=await recorder.stop();if(mounted)setState(()=>{recording=false,path=p??path,status='రికార్డింగ్ సేవ్ అయింది.'});}catch(_){if(mounted)setState(()=>recording=false);}}
+ Future<void> play()async{final p=path;if(p==null||!File(p).existsSync()){msg('ముందుగా రికార్డింగ్ చేయండి.');return;}try{await player.play(DeviceFileSource(p));if(mounted)setState(()=>{playing=true,status='Playing recording...'});}catch(_){msg('ఆడియో ప్లే కాలేదు.');}}
+ Future<void> stopPlay()async{await player.stop();if(mounted)setState(()=>{playing=false,status='Playback stopped.'});}
+ @override void initState(){super.initState();player.onPlayerComplete.listen((_){if(mounted)setState(()=>{playing=false,status='Playback complete.'});});}
+ @override void dispose(){recorder.dispose();player.dispose();super.dispose();}
+ @override Widget build(BuildContext c)=>_Page('Voice Studio','నీ వాయిస్‌ను రికార్డ్ చేసి, సేవ్ చేసి, తిరిగి విను.',_panel(Column(children:[
+ Container(height:145,width:145,decoration:BoxDecoration(shape:BoxShape.circle,color:_cyan.withOpacity(.1),border:Border.all(color:_cyan)),child:Icon(recording?Icons.mic:Icons.graphic_eq,color:recording?Colors.redAccent:_cyan,size:68)),
+ Text(status,style:const TextStyle(color:Colors.white70)),_button(recording?'Stop Recording':'Start Recording',recording?Icons.stop:Icons.mic,recording?stop:start),
+ Row(children:[Expanded(child:OutlinedButton.icon(onPressed:recording||path==null?null:play,icon:const Icon(Icons.play_arrow),label:const Text('Play'))),Expanded(child:OutlinedButton.icon(onPressed:playing?stopPlay:null,icon:const Icon(Icons.stop),label:const Text('Stop')))]),
+ const Text('ఈ వెర్షన్‌లో రికార్డింగ్ మరియు ప్లేబ్యాక్ ఉన్నాయి. Voice effects / editing తదుపరి దశలో చేర్చవచ్చు.',style:TextStyle(color:Colors.white54,fontSize:12))
+ ])));
+}
