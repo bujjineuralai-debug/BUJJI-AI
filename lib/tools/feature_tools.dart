@@ -43,31 +43,414 @@ class _BrainChallengeScreenState extends State<BrainChallengeScreen>{
  ])));
 }
 
-class _VisionPage extends StatefulWidget{final bool room;const _VisionPage(this.room);@override State<_VisionPage> createState()=>_VisionPageState();}
-class _VisionPageState extends State<_VisionPage>{
- final picker=ImagePicker();File? photo;String answer='';bool busy=false;
- void msg(String s){if(mounted)ScaffoldMessenger.of(context).showSnackBar(SnackBar(content:Text(s)));}
- Future<void> pick(ImageSource source)async{try{final f=await picker.pickImage(source:source,maxWidth:1280,imageQuality:72);if(f!=null&&mounted)setState(() { photo=File(f.path); answer=''; });}catch(_){msg('ఫోటో తెరవలేకపోయాను.');}}
- Future<void> analyze()async{if(photo==null||busy)return;setState(()=>busy=true);HttpClient? client;try{final bytes=await photo!.readAsBytes();if(bytes.length>5*1024*1024){msg('ఫోటో 5 MB కంటే తక్కువగా ఉండాలి.');return;}final prompt=widget.room?'Analyze this room photo. Reply in simple Telugu. Suggest furniture layout, lighting, wall colours, storage and low-budget improvements. Do not invent details.':'Identify the main object in this photo. Reply in simple Telugu. Explain what it is and its common use. If uncertain, say so.';client=HttpClient()..connectionTimeout=const Duration(seconds:20);final req=await client.postUrl(Uri.parse(_api+'/vision')).timeout(const Duration(seconds:25));req.headers.contentType=ContentType.json;req.add(utf8.encode(jsonEncode({'image':'data:image/jpeg;base64,'+base64Encode(bytes),'question':prompt})));final res=await req.close().timeout(const Duration(seconds:60));final data=jsonDecode(await res.transform(utf8.decoder).join()) as Map<String,dynamic>;if(res.statusCode!=200||data['success']!=true)throw Exception();if(mounted)setState(()=>answer=(data['answer']??'').toString());}catch(_){msg('విశ్లేషణ అందుబాటులో లేదు. Internet లేదా ఉచిత AI పరిమితిని తనిఖీ చేయండి.');}finally{client?.close(force:true);if(mounted)setState(()=>busy=false);}}
- @override Widget build(BuildContext c)=>_Page(widget.room?'Room Designer':'What Is This?',widget.room?'గది ఫోటో ఆధారంగా రంగులు, ఫర్నిచర్ అమరిక, లైటింగ్ మరియు తక్కువ ఖర్చుతో మెరుగుదలలపై సూచనలు పొందు.':'వస్తువు ఫోటో తీసి లేదా గ్యాలరీ నుంచి ఎంచుకుని దాని గురించి తెలుసుకో.',Column(children:[
- _panel(Column(children:[if(photo!=null)ClipRRect(borderRadius:BorderRadius.circular(12),child:Image.file(photo!,height:220,width:double.infinity,fit:BoxFit.cover))else SizedBox(height:170,child:Center(child:Icon(widget.room?Icons.chair_alt:Icons.photo_camera_back,color:_cyan,size:60))),Row(children:[Expanded(child:OutlinedButton.icon(onPressed:busy?null:()=>pick(ImageSource.camera),icon:const Icon(Icons.camera_alt),label:const Text('Camera'))),Expanded(child:OutlinedButton.icon(onPressed:busy?null:()=>pick(ImageSource.gallery),icon:const Icon(Icons.photo_library),label:const Text('Gallery')))]),_button(widget.room?'Design My Room':'Identify This',Icons.auto_awesome,photo==null?null:analyze,busy:busy)])),
- if(answer.isNotEmpty)...[const SizedBox(height:14),_panel(SelectableText(answer,style:const TextStyle(color:Colors.white,height:1.5)))],
- const Text('విశ్లేషణ కోసం చిత్రం BUJJI AI సర్వర్‌కు పంపబడుతుంది. ఉచిత పరిమితి ముగిస్తే సేవ తాత్కాలికంగా ఆగవచ్చు.',style:TextStyle(color:Colors.white54,fontSize:12))
- ]));
-}
-class WhatIsThisScreen extends StatelessWidget{const WhatIsThisScreen({super.key});@override Widget build(BuildContext c)=>const _VisionPage(false);}
-class RoomDesignerScreen extends StatelessWidget{const RoomDesignerScreen({super.key});@override Widget build(BuildContext c)=>const _VisionPage(true);}
+class _VisionPage extends StatefulWidget {
+  final bool room;
+  const _VisionPage(this.room);
 
-class HandwritingToTextScreen extends StatefulWidget{const HandwritingToTextScreen({super.key});@override State<HandwritingToTextScreen> createState()=>_HandwritingToTextScreenState();}
-class _HandwritingToTextScreenState extends State<HandwritingToTextScreen>{
- final picker=ImagePicker();final recognizer=TextRecognizer(script:TextRecognitionScript.latin);File? photo;String result='';bool busy=false;
- Future<void> scan(ImageSource source)async{try{final f=await picker.pickImage(source:source,maxWidth:1800,imageQuality:85);if(f==null||!mounted)return;setState(() { photo=File(f.path); result=''; busy=true; });final r=await recognizer.processImage(InputImage.fromFilePath(f.path));if(mounted)setState(() { result=r.text; busy=false; });if(r.text.trim().isEmpty&&mounted)ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content:Text('టెక్స్ట్ గుర్తించలేకపోయాను.')));}catch(_){if(mounted)setState(()=>busy=false);}}
- @override void dispose(){recognizer.close();super.dispose();}
- @override Widget build(BuildContext c)=>_Page('Handwriting to Text','చేతిరాత ఉన్న పేజీని ఫోటో తీసి లేదా గ్యాలరీ నుంచి ఎంచుకుని టెక్స్ట్‌గా మార్చుకో.',Column(children:[
- _panel(Column(children:[if(photo!=null)Image.file(photo!,height:180,width:double.infinity,fit:BoxFit.cover)else const SizedBox(height:120,child:Center(child:Icon(Icons.document_scanner,color:_cyan,size:58))),Row(children:[Expanded(child:OutlinedButton.icon(onPressed:busy?null:()=>scan(ImageSource.camera),icon:const Icon(Icons.camera_alt),label:const Text('Camera'))),Expanded(child:OutlinedButton.icon(onPressed:busy?null:()=>scan(ImageSource.gallery),icon:const Icon(Icons.photo_library),label:const Text('Gallery')))]),if(busy)const CircularProgressIndicator(color:_cyan)])),
- if(result.isNotEmpty)...[const SizedBox(height:14),_panel(Column(crossAxisAlignment:CrossAxisAlignment.start,children:[const Text('Recognized Text',style:TextStyle(color:_cyan)),SelectableText(result,style:const TextStyle(color:Colors.white)),_button('Copy Text',Icons.copy,()async{await Clipboard.setData(ClipboardData(text:result));if(c.mounted)ScaffoldMessenger.of(c).showSnackBar(const SnackBar(content:Text('Text copied')));})]))],
- const Text('గమనిక: ప్రస్తుతం Latin/English అక్షరాలను మాత్రమే గుర్తిస్తుంది. తెలుగు చేతిరాతకు మద్దతు లేదు; చేతిరాత ఫలితాలు స్పష్టతపై ఆధారపడి ఉంటాయి.',style:TextStyle(color:Colors.white54,fontSize:12))
- ]));
+  @override
+  State<_VisionPage> createState() => _VisionPageState();
+}
+
+class _VisionPageState extends State<_VisionPage> {
+  final picker = ImagePicker();
+  File? photo;
+  String answer = '';
+  bool busy = false;
+
+  void msg(String message) {
+    if (!mounted) return;
+    ScaffoldMessenger.of(context).showSnackBar(
+      SnackBar(content: Text(message)),
+    );
+  }
+
+  Future<void> pick(ImageSource source) async {
+    try {
+      final file = await picker.pickImage(
+        source: source,
+        maxWidth: 1280,
+        imageQuality: 72,
+      );
+      if (file == null || !mounted) return;
+      setState(() {
+        photo = File(file.path);
+        answer = '';
+      });
+    } catch (error) {
+      msg('ఫోటో తెరవలేకపోయాను: $error');
+    }
+  }
+
+  Future<void> analyze() async {
+    final selectedPhoto = photo;
+    if (selectedPhoto == null || busy) return;
+
+    setState(() {
+      busy = true;
+      answer = '';
+    });
+
+    HttpClient? client;
+    try {
+      final bytes = await selectedPhoto.readAsBytes();
+      if (bytes.length > 5 * 1024 * 1024) {
+        throw Exception('ఫోటో 5 MB కంటే తక్కువగా ఉండాలి.');
+      }
+
+      final prompt = widget.room
+          ? 'Analyze this room photo. Reply in simple Telugu. Suggest furniture layout, lighting, wall colours, storage and low-budget improvements. Do not invent details.'
+          : 'Identify the main object in this photo. Reply in simple Telugu. Explain what it is and its common use. If uncertain, say so.';
+
+      client = HttpClient()
+        ..connectionTimeout = const Duration(seconds: 20);
+
+      final request = await client
+          .postUrl(Uri.parse('$_api/vision'))
+          .timeout(const Duration(seconds: 25));
+      request.headers.contentType = ContentType.json;
+      request.headers.set(HttpHeaders.acceptHeader, 'application/json');
+      request.add(utf8.encode(jsonEncode({
+        'image': 'data:image/jpeg;base64,${base64Encode(bytes)}',
+        'question': prompt,
+      })));
+
+      final response =
+          await request.close().timeout(const Duration(seconds: 60));
+      final responseText = await response
+          .transform(utf8.decoder)
+          .join()
+          .timeout(const Duration(seconds: 30));
+
+      dynamic decoded;
+      try {
+        decoded = jsonDecode(responseText);
+      } catch (_) {
+        throw Exception('సర్వర్ సరైన సమాధానం పంపలేదు (HTTP ${response.statusCode}).');
+      }
+
+      if (decoded is! Map<String, dynamic>) {
+        throw Exception('సర్వర్ సమాధానం అర్థం కాలేదు.');
+      }
+
+      if (response.statusCode < 200 ||
+          response.statusCode >= 300 ||
+          decoded['success'] != true) {
+        final message = decoded['error']?.toString() ??
+            'AI విశ్లేషణ విఫలమైంది (HTTP ${response.statusCode}).';
+        final detail = decoded['detail']?.toString();
+        final requestId = decoded['requestId']?.toString();
+        final suffix = detail != null && detail.isNotEmpty
+            ? ' $detail'
+            : '';
+        final idText = requestId != null && requestId.isNotEmpty
+            ? ' (ID: $requestId)'
+            : '';
+        throw Exception('$message$suffix$idText');
+      }
+
+      final text = decoded['answer']?.toString().trim() ?? '';
+      if (text.isEmpty) {
+        throw Exception('AI ఖాళీ సమాధానం పంపింది. మళ్లీ ప్రయత్నించండి.');
+      }
+
+      if (mounted) setState(() => answer = text);
+    } catch (error) {
+      msg('విశ్లేషణ విఫలమైంది: ${error.toString().replaceFirst('Exception: ', '')}');
+    } finally {
+      client?.close(force: true);
+      if (mounted) setState(() => busy = false);
+    }
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    return _Page(
+      widget.room ? 'Room Designer' : 'What Is This?',
+      widget.room
+          ? 'గది ఫోటో ఆధారంగా రంగులు, ఫర్నిచర్ అమరిక, లైటింగ్ మరియు తక్కువ ఖర్చుతో మెరుగుదలలపై సూచనలు పొందు.'
+          : 'వస్తువు ఫోటో తీసి లేదా గ్యాలరీ నుంచి ఎంచుకుని దాని గురించి తెలుసుకో.',
+      Column(
+        children: [
+          _panel(
+            Column(
+              children: [
+                if (photo != null)
+                  ClipRRect(
+                    borderRadius: BorderRadius.circular(12),
+                    child: Image.file(
+                      photo!,
+                      height: 220,
+                      width: double.infinity,
+                      fit: BoxFit.cover,
+                    ),
+                  )
+                else
+                  SizedBox(
+                    height: 170,
+                    child: Center(
+                      child: Icon(
+                        widget.room
+                            ? Icons.chair_alt
+                            : Icons.photo_camera_back,
+                        color: _cyan,
+                        size: 60,
+                      ),
+                    ),
+                  ),
+                Row(
+                  children: [
+                    Expanded(
+                      child: OutlinedButton.icon(
+                        onPressed: busy
+                            ? null
+                            : () => pick(ImageSource.camera),
+                        icon: const Icon(Icons.camera_alt),
+                        label: const Text('Camera'),
+                      ),
+                    ),
+                    Expanded(
+                      child: OutlinedButton.icon(
+                        onPressed: busy
+                            ? null
+                            : () => pick(ImageSource.gallery),
+                        icon: const Icon(Icons.photo_library),
+                        label: const Text('Gallery'),
+                      ),
+                    ),
+                  ],
+                ),
+                _button(
+                  widget.room ? 'Design My Room' : 'Identify This',
+                  Icons.auto_awesome,
+                  photo == null ? null : analyze,
+                  busy: busy,
+                ),
+              ],
+            ),
+          ),
+          if (answer.isNotEmpty) ...[
+            const SizedBox(height: 14),
+            _panel(
+              SelectableText(
+                answer,
+                style: const TextStyle(color: Colors.white, height: 1.5),
+              ),
+            ),
+          ],
+          const Text(
+            'విశ్లేషణ కోసం చిత్రం BUJJI AI సర్వర్‌కు పంపబడుతుంది. ఉచిత పరిమితి ముగిస్తే సేవ తాత్కాలికంగా ఆగవచ్చు.',
+            style: TextStyle(color: Colors.white54, fontSize: 12),
+          ),
+        ],
+      ),
+    );
+  }
+}
+
+class WhatIsThisScreen extends StatelessWidget {
+  const WhatIsThisScreen({super.key});
+
+  @override
+  Widget build(BuildContext context) => const _VisionPage(false);
+}
+
+class RoomDesignerScreen extends StatelessWidget {
+  const RoomDesignerScreen({super.key});
+
+  @override
+  Widget build(BuildContext context) => const _VisionPage(true);
+}
+
+class HandwritingToTextScreen extends StatefulWidget {
+  const HandwritingToTextScreen({super.key});
+
+  @override
+  State<HandwritingToTextScreen> createState() =>
+      _HandwritingToTextScreenState();
+}
+
+class _HandwritingToTextScreenState extends State<HandwritingToTextScreen> {
+  final picker = ImagePicker();
+  final recognizer =
+      TextRecognizer(script: TextRecognitionScript.latin);
+
+  File? photo;
+  String result = '';
+  bool busy = false;
+
+  void msg(String message) {
+    if (!mounted) return;
+    ScaffoldMessenger.of(context).showSnackBar(
+      SnackBar(content: Text(message)),
+    );
+  }
+
+  Future<void> pick(ImageSource source) async {
+    try {
+      final file = await picker.pickImage(
+        source: source,
+        maxWidth: 1800,
+        imageQuality: 85,
+      );
+      if (file == null || !mounted) return;
+
+      setState(() {
+        photo = File(file.path);
+        result = '';
+      });
+    } catch (error) {
+      msg('ఫోటో తెరవలేకపోయాను: $error');
+    }
+  }
+
+  Future<void> convertToText() async {
+    final selectedPhoto = photo;
+    if (selectedPhoto == null || busy) return;
+
+    setState(() {
+      busy = true;
+      result = '';
+    });
+
+    try {
+      final recognized = await recognizer.processImage(
+        InputImage.fromFilePath(selectedPhoto.path),
+      );
+
+      if (!mounted) return;
+      final text = recognized.text.trim();
+      setState(() => result = text);
+
+      if (text.isEmpty) {
+        msg('టెక్స్ట్ గుర్తించలేకపోయాను. ఫోటో స్పష్టంగా ఉందో చూడండి.');
+      }
+    } catch (error) {
+      msg('టెక్స్ట్ మార్చడం విఫలమైంది: $error');
+    } finally {
+      if (mounted) setState(() => busy = false);
+    }
+  }
+
+  @override
+  void dispose() {
+    recognizer.close();
+    super.dispose();
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    return _Page(
+      'Handwriting to Text',
+      'చేతిరాత లేదా ముద్రించిన పేజీని ఫోటో తీసి లేదా గ్యాలరీ నుంచి ఎంచుకుని, తర్వాత Convert to Text నొక్కండి.',
+      Column(
+        children: [
+          _panel(
+            Column(
+              children: [
+                if (photo != null)
+                  ClipRRect(
+                    borderRadius: BorderRadius.circular(12),
+                    child: Image.file(
+                      photo!,
+                      height: 200,
+                      width: double.infinity,
+                      fit: BoxFit.contain,
+                    ),
+                  )
+                else
+                  const SizedBox(
+                    height: 120,
+                    child: Center(
+                      child: Icon(
+                        Icons.document_scanner,
+                        color: _cyan,
+                        size: 58,
+                      ),
+                    ),
+                  ),
+                Row(
+                  children: [
+                    Expanded(
+                      child: OutlinedButton.icon(
+                        onPressed:
+                            busy ? null : () => pick(ImageSource.camera),
+                        icon: const Icon(Icons.camera_alt),
+                        label: const Text('Camera'),
+                      ),
+                    ),
+                    Expanded(
+                      child: OutlinedButton.icon(
+                        onPressed:
+                            busy ? null : () => pick(ImageSource.gallery),
+                        icon: const Icon(Icons.photo_library),
+                        label: const Text('Gallery'),
+                      ),
+                    ),
+                  ],
+                ),
+                if (photo != null)
+                  _button(
+                    'Convert to Text',
+                    Icons.text_snippet,
+                    busy ? null : convertToText,
+                    busy: busy,
+                  ),
+                if (busy) ...[
+                  const SizedBox(height: 12),
+                  const CircularProgressIndicator(color: _cyan),
+                  const SizedBox(height: 6),
+                  const Text(
+                    'టెక్స్ట్ గుర్తిస్తోంది...',
+                    style: TextStyle(color: Colors.white70),
+                  ),
+                ],
+              ],
+            ),
+          ),
+          if (result.isNotEmpty) ...[
+            const SizedBox(height: 14),
+            _panel(
+              Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  const Text(
+                    'Recognized Text',
+                    style: TextStyle(
+                      color: _cyan,
+                      fontWeight: FontWeight.bold,
+                    ),
+                  ),
+                  const SizedBox(height: 8),
+                  SelectableText(
+                    result,
+                    style: const TextStyle(
+                      color: Colors.white,
+                      height: 1.5,
+                    ),
+                  ),
+                  const SizedBox(height: 12),
+                  _button(
+                    'Copy Text',
+                    Icons.copy,
+                    () async {
+                      await Clipboard.setData(
+                        ClipboardData(text: result),
+                      );
+                      msg('Text copied.');
+                    },
+                  ),
+                ],
+              ),
+            ),
+          ],
+          const Text(
+            'గమనిక: ఈ వెర్షన్‌లో Latin/English OCR మాత్రమే ఉంది. తెలుగు చేతిరాతకు ప్రస్తుతం మద్దతు లేదు. ఫలితం ఫోటో స్పష్టతపై ఆధారపడి ఉంటుంది.',
+            style: TextStyle(color: Colors.white54, fontSize: 12),
+          ),
+        ],
+      ),
+    );
+  }
 }
 
 class VoiceStudioScreen extends StatefulWidget{const VoiceStudioScreen({super.key});@override State<VoiceStudioScreen> createState()=>_VoiceStudioScreenState();}
