@@ -122,6 +122,26 @@ const ROMAN_MALAYALAM_WORDS = new Set([
   "kurachu", "enthaanu", "engane", "enthina", "ivideya", "samsarikkam",
 ]);
 
+const ENGLISH_WORDS = new Set([
+  "a", "about", "after", "again", "all", "am", "an", "and", "any", "are",
+  "as", "at", "be", "because", "been", "before", "being", "but", "by", "can",
+  "could", "day", "did", "do", "does", "doing", "down", "even", "for", "from",
+  "get", "give", "good", "great", "had", "has", "have", "he", "hello", "her",
+  "here", "hey", "him", "his", "how", "i", "if", "in", "is", "it", "its",
+  "just", "know", "like", "little", "may", "me", "more", "most", "much", "my",
+  "need", "not", "now", "of", "on", "one", "or", "our", "out", "please",
+  "really", "say", "see", "she", "should", "so", "some", "thank", "thanks",
+  "that", "the", "their", "them", "then", "there", "these", "they", "thing",
+  "think", "this", "those", "time", "to", "today", "too", "up", "us", "very",
+  "was", "we", "well", "were", "what", "when", "where", "which", "who", "why",
+  "will", "with", "would", "yes", "you", "your"
+]);
+
+const ENGLISH_SINGLE_WORDS = new Set([
+  "hi", "hello", "hey", "thanks", "thankyou", "please", "okay", "ok",
+  "good", "great", "sorry", "welcome", "bye", "goodbye", "yes", "no"
+]);
+
 function scoreWords(tokens, dictionary) {
   let score = 0;
 
@@ -160,37 +180,44 @@ function detectLanguage(message) {
   if (tokens.length === 0) return "Auto-detect";
 
   const normalized = tokens.map((token) =>
-    token.replace(/(.)\1{2,}/g, "$1$1")
+    token.replace(/(.)\\1{2,}/g, "$1$1")
   );
+  const shortText = normalized.join(" ");
 
+  if (/^(hi|hello|hey|hi bujji|hello bujji)$/.test(shortText)) {
+    return "English";
+  }
+
+  const englishScore = scoreWords(normalized, ENGLISH_WORDS);
   const teluguScore = scoreWords(normalized, ROMAN_TELUGU_WORDS);
   const hindiScore = scoreWords(normalized, ROMAN_HINDI_WORDS);
   const malayalamScore = scoreWords(normalized, ROMAN_MALAYALAM_WORDS);
 
-  const highestScore = Math.max(
+  const highestNonEnglishScore = Math.max(
     teluguScore,
     hindiScore,
     malayalamScore
   );
 
-  if (highestScore < 2) {
-    const shortText = normalized.join(" ");
+  if (
+    normalized.length === 1 &&
+    ROMAN_TELUGU_SINGLE_WORDS.has(normalized[0])
+  ) {
+    return "Telugu";
+  }
 
-    if (/^(hi|hello|hey|hi bujji|hello bujji)$/.test(shortText)) {
+  if (englishScore >= 2 && englishScore > highestNonEnglishScore) {
+    return "English";
+  }
+
+  if (highestNonEnglishScore < 2) {
+    if (normalized.length === 1 && ENGLISH_SINGLE_WORDS.has(normalized[0])) {
       return "English";
     }
-
-    if (
-      normalized.length === 1 &&
-      ROMAN_TELUGU_SINGLE_WORDS.has(normalized[0])
-    ) {
-      return "Telugu";
-    }
-
     return "Auto-detect";
   }
 
-  if (teluguScore === highestScore) return "Telugu";
+  if (teluguScore === highestNonEnglishScore) return "Telugu";
   if (hindiScore === highestScore) return "Hindi";
 
   return "Malayalam";
@@ -215,7 +242,7 @@ function cleanHistory(history) {
 
 function languageInstruction(language) {
   if (language === "Auto-detect") {
-    return "IMPORTANT: Detect the language of the latest user message from its complete meaning and context. Reply in that same language, using its normal writing system. Support any language; do not default to English merely because the message uses Latin letters. If it is genuinely ambiguous, ask a brief clarification.";
+    return "IMPORTANT: Identify the language of the latest user message itself, including its meaning, grammar, and common words. Reply in that same language and its normal writing system. Support as many languages as possible, including languages written in Latin letters and mixed-language messages. Use earlier conversation only to resolve genuine ambiguity; NEVER let an older message language override a clearly identifiable latest message. If the latest message is clearly English, reply in English even when all earlier messages were in another language. If genuinely ambiguous, ask one brief clarification.";
   }
 
   const replyStyle = language === "Telugu"
