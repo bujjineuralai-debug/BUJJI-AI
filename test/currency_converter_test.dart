@@ -22,7 +22,7 @@ void main() {
     await tester.pump();
 
     await tester.tap(find.text('USD').first);
-    await tester.pumpAndSettle(const Duration(milliseconds: 100));
+    await tester.pump(const Duration(milliseconds: 400));
 
     expect(find.text('Select currency'), findsOneWidget);
     await tester.enterText(find.byType(TextField).last, 'INR');
