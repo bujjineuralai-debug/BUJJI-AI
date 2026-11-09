@@ -218,7 +218,7 @@ function detectLanguage(message) {
   }
 
   if (teluguScore === highestNonEnglishScore) return "Telugu";
-  if (hindiScore === highestScore) return "Hindi";
+  if (hindiScore === highestNonEnglishScore) return "Hindi";
 
   return "Malayalam";
 }
