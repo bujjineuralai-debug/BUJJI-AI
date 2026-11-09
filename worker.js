@@ -263,7 +263,7 @@ function detectLanguage(message) {
 }
 
 function detectTeluguDialect(message) {
-  const tokens = String(message || "").toLowerCase().match(/[a-z]+|[\\u0C00-\\u0C7F]+/g) || [];
+  const tokens = String(message || "").toLowerCase().match(/[a-z]+|[\u0C00-\u0C7F]+/g) || [];
   if (tokens.length === 0) return null;
 
   const tokenSet = new Set(tokens);
@@ -275,7 +275,7 @@ function detectTeluguDialect(message) {
     let score = 0;
 
     for (const marker of data.markers) {
-      const markerTokens = marker.toLowerCase().match(/[a-z]+|[\\u0C00-\\u0C7F]+/g) || [];
+      const markerTokens = marker.toLowerCase().match(/[a-z]+|[\u0C00-\u0C7F]+/g) || [];
       const matched = markerTokens.length > 1
         ? normalizedText.includes(` ${markerTokens.join(" ")} `)
         : tokenSet.has(markerTokens[0]);
@@ -284,7 +284,7 @@ function detectTeluguDialect(message) {
     }
 
     const hasStrongMarker = data.strong.some((marker) => {
-      const markerTokens = marker.toLowerCase().match(/[a-z]+|[\\u0C00-\\u0C7F]+/g) || [];
+      const markerTokens = marker.toLowerCase().match(/[a-z]+|[\u0C00-\u0C7F]+/g) || [];
       return markerTokens.length > 1
         ? normalizedText.includes(` ${markerTokens.join(" ")} `)
         : tokenSet.has(markerTokens[0]);
