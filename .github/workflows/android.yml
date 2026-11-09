@@ -36,6 +36,17 @@ jobs:
       - name: Generate Android Project
         run: flutter create --platforms=android .
 
+      - name: Configure ML Kit R8 Rules
+        run: |
+          cat > android/app/proguard-rules.pro <<'EOF'
+          # BUJJI currently uses Latin text recognition only.
+          # Other script recognizers are optional ML Kit dependencies.
+          -dontwarn com.google.mlkit.vision.text.chinese.**
+          -dontwarn com.google.mlkit.vision.text.devanagari.**
+          -dontwarn com.google.mlkit.vision.text.japanese.**
+          -dontwarn com.google.mlkit.vision.text.korean.**
+          EOF
+
       - name: Restore Custom Android Manifest
         run: |
           if [ -f /tmp/bujji-backup/AndroidManifest.xml ]; then
@@ -56,4 +67,3 @@ jobs:
         with:
           name: BUJJI-AI-APK
           path: build/app/outputs/flutter-apk/app-release.apk
-          
