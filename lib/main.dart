@@ -163,12 +163,90 @@ class BujjiHomeScreen extends StatefulWidget {
       _BujjiHomeScreenState();
 }
 
+enum BujjiMode { smartAuto, onlineAI, offline }
+
 class _BujjiHomeScreenState extends State<BujjiHomeScreen> {
   static const String apiUrl =
       'https://bujji-ai-api.bujji-neural-ai.workers.dev/chat';
 
   int selectedIndex = 0;
   bool isLoading = false;
+  BujjiMode selectedMode = BujjiMode.smartAuto;
+
+  String get modeLabel {
+    switch (selectedMode) {
+      case BujjiMode.smartAuto:
+        return 'Smart Auto';
+      case BujjiMode.onlineAI:
+        return 'Online AI';
+      case BujjiMode.offline:
+        return 'Offline Mode';
+    }
+  }
+
+  String getOfflineReply(String message) {
+    final String text = message.toLowerCase().trim();
+    if (text == 'hi' || text == 'hello' || text == 'hey' ||
+        text.contains('నమస్కారం') || text.contains('హాయ్')) {
+      return 'హాయ్! నేను BUJJI AI. ప్రస్తుతం పరిమిత Offline Mode లో ఉన్నాను. Internet అందుబాటులోకి వచ్చిన తర్వాత Smart Auto ఎంచుకుంటే పూర్తి Online AI సహాయం పొందవచ్చు.';
+    }
+    if (text.contains('help') || text.contains('ఏం చేయగలవు') ||
+        text.contains('సహాయం')) {
+      return 'Offline Mode లో ప్రస్తుతం ప్రాథమిక స్థానిక సహాయం మాత్రమే అందుబాటులో ఉంది. పూర్తి ప్రశ్నలకు, వివరణలకు మరియు AI సమాధానాలకు Internet అవసరం.';
+    }
+    return 'ప్రస్తుతం Internet కనెక్షన్ లేదు. Offline Mode లో పరిమిత స్థానిక సహాయం మాత్రమే అందుబాటులో ఉంది. పూర్తి AI సమాధానాల కోసం Internet వచ్చినప్పుడు Smart Auto లేదా Online AI ఎంచుకోండి.';
+  }
+
+  void addAssistantReply(String reply) {
+    if (!mounted) return;
+    setState(() {
+      messages.add(ChatMessage(role: 'assistant', content: reply));
+    });
+    scrollToBottom();
+  }
+
+  Future<void> chooseMode() async {
+    final BujjiMode? mode = await showModalBottomSheet<BujjiMode>(
+      context: context,
+      backgroundColor: const Color(0xFF0B2035),
+      shape: const RoundedRectangleBorder(
+        borderRadius: BorderRadius.vertical(top: Radius.circular(22)),
+      ),
+      builder: (sheetContext) => SafeArea(
+        child: Padding(
+          padding: const EdgeInsets.fromLTRB(18, 18, 18, 24),
+          child: Column(
+            mainAxisSize: MainAxisSize.min,
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              const Text('Choose BUJJI Mode', style: TextStyle(color: Colors.white, fontSize: 18, fontWeight: FontWeight.bold)),
+              const SizedBox(height: 12),
+              _modeOption(sheetContext, BujjiMode.smartAuto, 'Smart Auto', 'Internet ఉంటే Online AI; లేకపోతే పరిమిత Offline సహాయం', Icons.auto_awesome_rounded),
+              _modeOption(sheetContext, BujjiMode.onlineAI, 'Online AI', 'పూర్తి AI సమాధానాల కోసం Internet అవసరం', Icons.cloud_rounded),
+              _modeOption(sheetContext, BujjiMode.offline, 'Offline Mode', 'Internet లేనప్పుడు పరిమిత స్థానిక సహాయం', Icons.cloud_off_rounded),
+            ],
+          ),
+        ),
+      ),
+    );
+    if (mode == null || !mounted) return;
+    setState(() => selectedMode = mode);
+    if (mode == BujjiMode.offline) {
+      showMessage('Offline Mode ఎంపికైంది. పరిమిత స్థానిక సహాయం మాత్రమే అందుబాటులో ఉంటుంది.');
+    }
+  }
+
+  Widget _modeOption(BuildContext sheetContext, BujjiMode mode, String title, String subtitle, IconData icon) {
+    final bool selected = selectedMode == mode;
+    return ListTile(
+      contentPadding: const EdgeInsets.symmetric(horizontal: 4),
+      leading: Icon(icon, color: selected ? cyan : Colors.white70),
+      title: Text(title, style: TextStyle(color: selected ? cyan : Colors.white, fontWeight: FontWeight.w600)),
+      subtitle: Text(subtitle, style: const TextStyle(color: Color(0xFF9AACC1), fontSize: 12)),
+      trailing: selected ? Icon(Icons.check_circle_rounded, color: cyan) : null,
+      onTap: () => Navigator.pop(sheetContext, mode),
+    );
+  }
 
   bool speechInitialized = false;
   bool isListening = false;
@@ -327,11 +405,8 @@ class _BujjiHomeScreenState extends State<BujjiHomeScreen> {
       await stopVoiceRecognition();
     }
 
-    final String message =
-        messageController.text.trim();
-
+    final String message = messageController.text.trim();
     if (message.isEmpty) return;
-
     if (message.length > 4000) {
       showMessage('Message is too long.');
       return;
@@ -341,132 +416,94 @@ class _BujjiHomeScreenState extends State<BujjiHomeScreen> {
         messages.map((item) => item.toJson()).toList();
 
     setState(() {
-      messages.add(
-        ChatMessage(
-          role: 'user',
-          content: message,
-        ),
-      );
-
+      messages.add(ChatMessage(role: 'user', content: message));
       isLoading = true;
     });
-
     messageController.clear();
     scrollToBottom();
 
+    if (selectedMode == BujjiMode.offline) {
+      addAssistantReply(getOfflineReply(message));
+      setState(() => isLoading = false);
+      return;
+    }
+
     final HttpClient client = HttpClient();
-    client.connectionTimeout =
-        const Duration(seconds: 20);
+    client.connectionTimeout = const Duration(seconds: 20);
 
     try {
       final Uri uri = Uri.parse(apiUrl);
-
       final HttpClientRequest request =
-          await client.postUrl(uri).timeout(
-        const Duration(seconds: 30),
-      );
-
+          await client.postUrl(uri).timeout(const Duration(seconds: 30));
       request.headers.contentType = ContentType.json;
-
-      request.headers.set(
-        HttpHeaders.acceptHeader,
-        'application/json',
-      );
-
-      request.add(
-        utf8.encode(
-          jsonEncode({
-            'message': message,
-            'history': history,
-          }),
-        ),
-      );
+      request.headers.set(HttpHeaders.acceptHeader, 'application/json');
+      request.add(utf8.encode(jsonEncode({
+        'message': message,
+        'history': history,
+      })));
 
       final HttpClientResponse response =
-          await request.close().timeout(
-        const Duration(seconds: 60),
-      );
-
+          await request.close().timeout(const Duration(seconds: 60));
       final String responseBody =
           await utf8.decoder.bind(response).join().timeout(
-        const Duration(seconds: 30),
-      );
+                const Duration(seconds: 30),
+              );
 
       dynamic decoded;
-
       try {
         decoded = jsonDecode(responseBody);
       } catch (_) {
         throw Exception(
-          'HTTP ${response.statusCode}: Invalid JSON response. '
-          'Server response: '
-          '${responseBody.isEmpty ? "(empty)" : responseBody.substring(0, responseBody.length > 250 ? 250 : responseBody.length)}',
+          'HTTP ${response.statusCode}: Invalid JSON response.',
         );
       }
 
       if (decoded is! Map<String, dynamic>) {
-        throw Exception(
-          'HTTP ${response.statusCode}: Invalid server response.',
-        );
+        throw Exception('HTTP ${response.statusCode}: Invalid server response.');
       }
-
       if (response.statusCode < 200 ||
           response.statusCode >= 300 ||
           decoded['success'] != true) {
-        final String serverError =
-            decoded['error']?.toString() ??
-                decoded['message']?.toString() ??
-                'Unknown server error';
-
-        throw Exception(
-          'HTTP ${response.statusCode}: $serverError',
-        );
+        final String serverError = decoded['error']?.toString() ??
+            decoded['message']?.toString() ?? 'Unknown server error';
+        throw Exception('HTTP ${response.statusCode}: $serverError');
       }
 
-      final String reply =
-          decoded['reply']?.toString() ?? '';
-
+      final String reply = decoded['reply']?.toString() ?? '';
       if (reply.trim().isEmpty) {
-        throw Exception(
-          'AI returned an empty response.',
-        );
+        throw Exception('AI returned an empty response.');
       }
-
-      if (!mounted) return;
-
-      setState(() {
-        messages.add(
-          ChatMessage(
-            role: 'assistant',
-            content: reply.trim(),
-          ),
-        );
-      });
-
-      scrollToBottom();
+      addAssistantReply(reply.trim());
+    } on SocketException catch (error) {
+      if (selectedMode == BujjiMode.smartAuto) {
+        addAssistantReply(getOfflineReply(message));
+      } else {
+        showMessage('Internet connection unavailable: $error');
+      }
+    } on TimeoutException {
+      if (selectedMode == BujjiMode.smartAuto) {
+        addAssistantReply(getOfflineReply(message));
+      } else {
+        showMessage('Online AI timed out. Please try again.');
+      }
+    } on HttpException catch (error) {
+      if (selectedMode == BujjiMode.smartAuto) {
+        addAssistantReply(getOfflineReply(message));
+      } else {
+        showMessage('Online AI error: $error');
+      }
     } catch (error) {
       if (!mounted) return;
-
+      debugPrint('BUJJI AI Error: $error');
       final String errorDetails = error.toString();
-
-      debugPrint('BUJJI AI Error: $errorDetails');
-
-      final String visibleError =
-          errorDetails.length > 220
-              ? '${errorDetails.substring(0, 220)}...'
-              : errorDetails;
-
-      showMessage(
-        'BUJJI AI error: $visibleError',
-      );
+      final String visibleError = errorDetails.length > 220
+          ? '${errorDetails.substring(0, 220)}...'
+          : errorDetails;
+      showMessage('BUJJI AI error: $visibleError');
     } finally {
       client.close(force: true);
-
       if (mounted) {
-        setState(() {
-          isLoading = false;
-        });
-
+        setState(() => isLoading = false);
         scrollToBottom();
       }
     }
@@ -622,35 +659,41 @@ class _BujjiHomeScreenState extends State<BujjiHomeScreen> {
               ],
             ),
           ),
-          Container(
-            padding: const EdgeInsets.symmetric(
-              horizontal: 11,
-              vertical: 9,
-            ),
-            decoration: BoxDecoration(
-              color: cyan.withOpacity(0.10),
-              borderRadius: BorderRadius.circular(22),
-              border: Border.all(
-                color: cyan.withOpacity(0.45),
+          InkWell(
+            onTap: chooseMode,
+            borderRadius: BorderRadius.circular(22),
+            child: Container(
+              padding: const EdgeInsets.symmetric(horizontal: 11, vertical: 9),
+              decoration: BoxDecoration(
+                color: cyan.withOpacity(0.10),
+                borderRadius: BorderRadius.circular(22),
+                border: Border.all(color: cyan.withOpacity(0.45)),
               ),
-            ),
-            child: Row(
-              children: [
-                Icon(
-                  Icons.hub_rounded,
-                  size: 16,
-                  color: cyan,
-                ),
-                const SizedBox(width: 5),
-                Text(
-                  'Hybrid Mode',
-                  style: TextStyle(
+              child: Row(
+                mainAxisSize: MainAxisSize.min,
+                children: [
+                  Icon(
+                    selectedMode == BujjiMode.offline
+                        ? Icons.cloud_off_rounded
+                        : selectedMode == BujjiMode.onlineAI
+                            ? Icons.cloud_rounded
+                            : Icons.hub_rounded,
+                    size: 16,
                     color: cyan,
-                    fontSize: 11,
-                    fontWeight: FontWeight.w600,
                   ),
-                ),
-              ],
+                  const SizedBox(width: 5),
+                  Text(
+                    modeLabel,
+                    style: TextStyle(
+                      color: cyan,
+                      fontSize: 11,
+                      fontWeight: FontWeight.w600,
+                    ),
+                  ),
+                  const SizedBox(width: 3),
+                  Icon(Icons.arrow_drop_down_rounded, size: 16, color: cyan),
+                ],
+              ),
             ),
           ),
         ],
