@@ -416,7 +416,15 @@ class _BujjiHomeScreenState extends State<BujjiHomeScreen> {
                       ? _buildHomeContent()
                       : selectedIndex == 1
                           ? ToolsHome(
-                              onOpenCurrencyConverter: () {\n                                Navigator.of(context).push(\n                                  MaterialPageRoute(\n                                    builder: (context) =>\n                                        const CurrencyConverter(),\n                                  ),\n                                );\n                              },\n                              onOpenCalculator: () {
+                              onOpenCurrencyConverter: () {
+                                Navigator.of(context).push(
+                                  MaterialPageRoute(
+                                    builder: (context) =>
+                                        const CurrencyConverter(),
+                                  ),
+                                );
+                              },
+                              onOpenCalculator: () {
                                 Navigator.of(context).push(
                                   MaterialPageRoute(
                                     builder: (context) =>
