@@ -358,6 +358,64 @@ export default {
 
     const url = new URL(request.url);
 
+    if (url.pathname === "/vision") {
+      if (request.method !== "POST") {
+        return jsonResponse({ success: false, error: "Method not allowed." }, 405);
+      }
+
+      if (!env || !env.AI || typeof env.AI.run !== "function") {
+        return jsonResponse({ success: false, error: "Cloudflare AI binding is missing." }, 500);
+      }
+
+      try {
+        const body = await request.json();
+        if (!body || typeof body !== "object" || Array.isArray(body)) {
+          return jsonResponse({ success: false, error: "Invalid request body." }, 400);
+        }
+
+        const image = typeof body.image === "string" ? body.image : "";
+        const question = typeof body.question === "string" ? body.question.trim() : "";
+
+        if (!/^data:image\/(jpeg|jpg|png|webp);base64,/.test(image)) {
+          return jsonResponse({ success: false, error: "A valid image is required." }, 400);
+        }
+
+        if (image.length > 7000000) {
+          return jsonResponse({ success: false, error: "Image is too large. Maximum image size is 5 MB." }, 413);
+        }
+
+        if (!question || question.length > 1200) {
+          return jsonResponse({ success: false, error: "A question is required (maximum 1200 characters)." }, 400);
+        }
+
+        const result = await env.AI.run("@cf/moondream/moondream3.1-9B-A2B", {
+          task: "query",
+          image,
+          question,
+          reasoning: false,
+          stream: false,
+          max_tokens: 600,
+          temperature: 0.2,
+        });
+
+        const answer = result && typeof result.answer === "string"
+          ? result.answer.trim()
+          : "";
+
+        if (!answer) {
+          return jsonResponse({ success: false, error: "Vision model returned an empty response." }, 502);
+        }
+
+        return jsonResponse({ success: true, answer });
+      } catch (error) {
+        console.error("BUJJI Vision Error:", error);
+        return jsonResponse({
+          success: false,
+          error: "Photo analysis is temporarily unavailable. Please try again later.",
+        }, 502);
+      }
+    }
+
     if (url.pathname === "/" && request.method === "GET") {
       return jsonResponse({
         success: true,
