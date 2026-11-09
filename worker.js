@@ -340,7 +340,7 @@ function languageInstruction(language, dialect = null) {
 
   const dialectGuidance = language === "Telugu"
     ? dialect
-      ? ` The user's Telugu shows clues of ${dialect} Telugu. Mirror this dialect naturally and respectfully without exaggerating it.`
+      ? ` The user's Telugu shows clues of ${dialect} Telugu. You MUST make your own reply sound naturally conversational in that dialect, not merely understand it. Keep the same level of casualness and familiarity while remaining respectful. For Telangana Telugu, when the user casually says "ఏందిరా గురూ, గిట్లా ఉన్నావ్?", a natural reply is "బాగున్నా గురూ! నువ్వెలా ఉన్నావ్?" Avoid switching to formal textbook Telugu such as "మీరు ఎలా ఉన్నారు?" unless the user used a formal tone. Do not force slang into every sentence.`
       : " No regional dialect is confidently identified by the keyword hints. Use natural conversational Telugu, understand the user's colloquial words, and infer a dialect from the full message only when the evidence is clear."
     : "";
 
