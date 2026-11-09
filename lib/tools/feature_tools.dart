@@ -8,7 +8,7 @@ import 'package:image_picker/image_picker.dart';
 import 'package:path_provider/path_provider.dart';
 import 'package:record/record.dart';
 
-const _bg=Color(0xFF071426), _panel=Color(0xFF10243D), _cyan=Color(0xFF00D9FF), _gold=Color(0xFFFFC857);
+const _bg=Color(0xFF071426), _panelColor=Color(0xFF10243D), _cyan=Color(0xFF00D9FF), _gold=Color(0xFFFFC857);
 const _api='https://bujji-ai-api.bujji-neural-ai.workers.dev';
 
 class _Page extends StatelessWidget {
@@ -16,7 +16,7 @@ class _Page extends StatelessWidget {
   const _Page(this.title,this.intro,this.child);
   @override Widget build(BuildContext c)=>Scaffold(backgroundColor:_bg,appBar:AppBar(backgroundColor:_bg,foregroundColor:Colors.white,title:Text(title)),body:SafeArea(child:SingleChildScrollView(padding:const EdgeInsets.all(18),child:Column(crossAxisAlignment:CrossAxisAlignment.start,children:[Text(intro,style:const TextStyle(color:Colors.white70,height:1.5)),const SizedBox(height:18),child]))));
 }
-Widget _panel(Widget child)=>Container(width:double.infinity,padding:const EdgeInsets.all(16),decoration:BoxDecoration(color:_panel,borderRadius:BorderRadius.circular(18),border:Border.all(color:_cyan.withOpacity(.2))),child:child);
+Widget _panel(Widget child)=>Container(width:double.infinity,padding:const EdgeInsets.all(16),decoration:BoxDecoration(color:_panelColor,borderRadius:BorderRadius.circular(18),border:Border.all(color:_cyan.withOpacity(.2))),child:child);
 Widget _button(String label,IconData icon,VoidCallback? action,{bool busy=false})=>SizedBox(width:double.infinity,child:ElevatedButton.icon(onPressed:busy?null:action,icon:busy?const SizedBox(width:18,height:18,child:CircularProgressIndicator(strokeWidth:2)):Icon(icon),label:Text(label),style:ElevatedButton.styleFrom(backgroundColor:_cyan,foregroundColor:_bg,padding:const EdgeInsets.symmetric(vertical:14))));
 
 class BrainChallengeScreen extends StatefulWidget { const BrainChallengeScreen({super.key}); @override State<BrainChallengeScreen> createState()=>_BrainChallengeScreenState(); }
