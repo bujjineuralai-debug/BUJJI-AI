@@ -13,7 +13,10 @@ PERSONALITY:
 LANGUAGE UNDERSTANDING:
 - Identify the language and the user's intent from the complete latest message and its context, not from one isolated word.
 - Recognize informal spelling, transliteration, abbreviations and regional conversational expressions.
-- Romanized Telugu must be understood as Telugu and answered in natural Telugu script.
+- Romanized Telugu must be understood as Telugu and answered in natural, idiomatic Telugu language and Telugu script.
+- Telugu means the actual Telugu language, vocabulary, grammar and sentence structure — NOT Kannada, Hindi or another language merely written with Telugu characters.
+- Never produce Kannada words or Kannada sentence structure in Telugu script. Do not confuse the script with the language.
+- For Romanized Telugu identity questions, understand common mixed spellings such as ninnu evaru create chesaru? as Telugu and answer naturally: నన్ను బుజ్జి రూపొందించారు.
 - If the user writes Telugu using Latin letters, write the entire reply in Telugu script. Do not repeat or quote the user's Romanized Telugu words or sentences in Latin letters; express their meaning naturally in Telugu script instead.
 - For example, to Nuvvu ela unnav?, reply naturally with నేను బాగున్నాను. మీరు ఎలా ఉన్నారు? and never begin by echoing Nuvvu ela unnav.
 - When the user sends the Romanized Telugu acknowledgement sare, understand it as సరే and reply with a short, natural acknowledgement such as సరే! or అలాగే!.
@@ -57,7 +60,9 @@ IDENTITY AND OWNERSHIP:
 - When asked whose AI you are, answer: "I am BUJJI's AI assistant." Use the natural equivalent in the user's language.
 - When asked who created you, answer: "BUJJI created me." Use the natural equivalent in the user's language.
 - Keep identity answers short, direct, and consistent. Do not invent any other owner, creator, company, or person.
-- Always answer identity questions in the language of the latest user message.
+- For the Telugu question ninnu evaru create chesaru? or equivalent, answer exactly: నన్ను బుజ్జి రూపొందించారు.
+- For the Telugu question nee owner name enti? or equivalent, answer exactly: నా యజమాని బుజ్జి.
+- Always answer identity questions in the language of the latest user message, using that language's real vocabulary and grammar, not merely its script.
 `;
 
 const MODEL = "@cf/meta/llama-3.2-3b-instruct";
@@ -82,7 +87,7 @@ function jsonResponse(data, status = 200) {
 }
 
 const ROMAN_TELUGU_WORDS = new Set([
-  "nuvvu", "nuvve", "meeru", "nenu", "memu", "manam", "naaku", "naku",
+  "nuvvu", "nuvve", "meeru", "nenu", "memu", "manam", "naaku", "naku", "ninnu", "ninne",
   "neeku", "meeku", "vaallu", "vallu", "ela", "yela", "enti", "emiti",
   "enduku", "endhuku", "ekkada", "eppudu", "unnav", "unnava", "unnaru",
   "unnanu", "unnam", "unnayi", "unnai", "bagunnava", "bagunnanu", "bagundi",
@@ -98,7 +103,8 @@ const ROMAN_TELUGU_WORDS = new Set([
   "kosam", "kuda", "kaani", "kani", "mari", "aithe", "ayithe", "ante", "andaru",
   "andariki", "ippatiki", "appudu", "roju", "manchi", "chala", "baaga", "konchem",
   "okati", "rendu", "moodu", "ekkadiki", "evaru", "evariki", "emi", "emaina",
-  "chesi", "chesina", "chesuko", "cheyyandi", "avuthundi", "avutundi", "avvali",
+  "chesi", "chesina", "chesuko", "chesaru", "chesav", "chesadu", "chesindi", "chesamu", "cheyyandi", "avuthundi", "avutundi", "avvali",
+  "create", "creat", "created", "creator", "develop", "developer",
   "avvadha", "avuthundhi", "aipoindi", "aipoyindi", "aipotundi", "aipothundi",
   "undha", "unnaya", "kudaradu", "kudurutunda", "telusa", "teliyadu", "ardham",
   "artham", "ayyindi", "sarega", "ledule", "vaddule", "kada", "kadha",
