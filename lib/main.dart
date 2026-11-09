@@ -9,6 +9,7 @@ import 'package:speech_to_text/speech_to_text.dart';
 import 'tools/smart_calculator.dart';
 import 'tools/currency_converter.dart';
 import 'tools/tools_home.dart';
+import 'tools/feature_tools.dart';
 
 void main() {
   runApp(const BujjiAIApp());
@@ -560,20 +561,25 @@ class _BujjiHomeScreenState extends State<BujjiHomeScreen> {
                       : selectedIndex == 1
                           ? ToolsHome(
                               onOpenCurrencyConverter: () {
-                                Navigator.of(context).push(
-                                  MaterialPageRoute(
-                                    builder: (context) =>
-                                        const CurrencyConverter(),
-                                  ),
-                                );
+                                Navigator.of(context).push(MaterialPageRoute(builder: (context) => const CurrencyConverter()));
                               },
                               onOpenCalculator: () {
-                                Navigator.of(context).push(
-                                  MaterialPageRoute(
-                                    builder: (context) =>
-                                        const SmartCalculator(),
-                                  ),
-                                );
+                                Navigator.of(context).push(MaterialPageRoute(builder: (context) => const SmartCalculator()));
+                              },
+                              onOpenWhatIsThis: () {
+                                Navigator.of(context).push(MaterialPageRoute(builder: (context) => const WhatIsThisScreen()));
+                              },
+                              onOpenRoomDesigner: () {
+                                Navigator.of(context).push(MaterialPageRoute(builder: (context) => const RoomDesignerScreen()));
+                              },
+                              onOpenBrainChallenge: () {
+                                Navigator.of(context).push(MaterialPageRoute(builder: (context) => const BrainChallengeScreen()));
+                              },
+                              onOpenHandwriting: () {
+                                Navigator.of(context).push(MaterialPageRoute(builder: (context) => const HandwritingToTextScreen()));
+                              },
+                              onOpenVoiceStudio: () {
+                                Navigator.of(context).push(MaterialPageRoute(builder: (context) => const VoiceStudioScreen()));
                               },
                             )
                           : _buildSectionContent(),
