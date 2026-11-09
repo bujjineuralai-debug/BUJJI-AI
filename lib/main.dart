@@ -538,9 +538,9 @@ class _BujjiHomeScreenState extends State<BujjiHomeScreen> {
                                 );
                               },
                             )
-                          : _buildPlaceholder(),
+                          : _buildSectionContent(),
                 ),
-                if (selectedIndex != 1) _buildComposer(),
+                if (selectedIndex == 0) _buildComposer(),
                 _buildBottomNavigation(),
               ],
             ),
@@ -839,32 +839,148 @@ class _BujjiHomeScreenState extends State<BujjiHomeScreen> {
     );
   }
 
-  Widget _buildPlaceholder() {
+  Widget _buildSectionContent() {
+    if (selectedIndex == 2) {
+      return _buildEmptySection(
+        icon: Icons.history_rounded,
+        title: 'Chat History',
+        description: 'Your previous conversations will appear here.',
+        detail: 'Start a conversation from Home to begin using BUJJI AI.',
+      );
+    }
+
+    if (selectedIndex == 3) {
+      return _buildEmptySection(
+        icon: Icons.favorite_rounded,
+        title: 'Favorites',
+        description: 'Your favorite conversations will appear here.',
+        detail: 'You have not added any favorites yet.',
+      );
+    }
+
+    return ListView(
+      padding: const EdgeInsets.fromLTRB(18, 24, 18, 24),
+      children: [
+        Text(
+          'Explore BUJJI AI',
+          style: TextStyle(
+            color: Colors.white,
+            fontSize: 23,
+            fontWeight: FontWeight.bold,
+          ),
+        ),
+        const SizedBox(height: 8),
+        const Text(
+          'Discover what you can do with your personal AI assistant.',
+          style: TextStyle(
+            color: Color(0xFF9AACC1),
+            fontSize: 13,
+            height: 1.5,
+          ),
+        ),
+        const SizedBox(height: 22),
+        _buildExploreCard(
+          Icons.chat_rounded,
+          'AI Chat',
+          'Ask questions and get help from BUJJI AI.',
+        ),
+        _buildExploreCard(
+          Icons.grid_view_rounded,
+          'Smart Tools',
+          'Open the Tools tab to use helpful utilities.',
+        ),
+        _buildExploreCard(
+          Icons.translate_rounded,
+          'Multiple Languages',
+          'Chat with BUJJI AI in Telugu, English and Hindi.',
+        ),
+      ],
+    );
+  }
+
+  Widget _buildEmptySection({
+    required IconData icon,
+    required String title,
+    required String description,
+    required String detail,
+  }) {
     return Center(
-      child: Column(
-        mainAxisSize: MainAxisSize.min,
-        children: [
-          Icon(
-            navigationIcons[selectedIndex],
-            size: 42,
-            color: cyan,
-          ),
-          const SizedBox(height: 12),
-          Text(
-            navigationItems[selectedIndex],
-            style: const TextStyle(
-              color: Colors.white,
-              fontSize: 20,
-              fontWeight: FontWeight.bold,
+      child: Padding(
+        padding: const EdgeInsets.all(28),
+        child: Column(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            Icon(icon, size: 48, color: cyan),
+            const SizedBox(height: 16),
+            Text(
+              title,
+              style: const TextStyle(
+                color: Colors.white,
+                fontSize: 21,
+                fontWeight: FontWeight.bold,
+              ),
             ),
-          ),
-          const SizedBox(height: 6),
-          const Text(
-            'This section will be built after Home UI approval.',
-            textAlign: TextAlign.center,
-            style: TextStyle(
-              color: Color(0xFF9AACC1),
-              fontSize: 12,
+            const SizedBox(height: 9),
+            Text(
+              description,
+              textAlign: TextAlign.center,
+              style: const TextStyle(
+                color: Color(0xFFCBD8E8),
+                fontSize: 14,
+                height: 1.5,
+              ),
+            ),
+            const SizedBox(height: 7),
+            Text(
+              detail,
+              textAlign: TextAlign.center,
+              style: const TextStyle(
+                color: Color(0xFF9AACC1),
+                fontSize: 12,
+                height: 1.5,
+              ),
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+
+  Widget _buildExploreCard(IconData icon, String title, String description) {
+    return Container(
+      margin: const EdgeInsets.only(bottom: 13),
+      padding: const EdgeInsets.all(17),
+      decoration: BoxDecoration(
+        color: const Color(0xDD0B2035),
+        borderRadius: BorderRadius.circular(17),
+        border: Border.all(color: cyan.withOpacity(0.30)),
+      ),
+      child: Row(
+        children: [
+          Icon(icon, color: cyan, size: 27),
+          const SizedBox(width: 14),
+          Expanded(
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Text(
+                  title,
+                  style: const TextStyle(
+                    color: Colors.white,
+                    fontSize: 15,
+                    fontWeight: FontWeight.bold,
+                  ),
+                ),
+                const SizedBox(height: 5),
+                Text(
+                  description,
+                  style: const TextStyle(
+                    color: Color(0xFFCBD8E8),
+                    fontSize: 12,
+                    height: 1.4,
+                  ),
+                ),
+              ],
             ),
           ),
         ],
