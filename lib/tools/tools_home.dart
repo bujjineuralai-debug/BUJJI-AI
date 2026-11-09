@@ -2,11 +2,13 @@
 import 'package:flutter/material.dart';
 
 class ToolsHome extends StatelessWidget {
-  final VoidCallback onOpenCalculator;\n  final VoidCallback onOpenCurrencyConverter;
+  final VoidCallback onOpenCalculator;
+  final VoidCallback onOpenCurrencyConverter;
 
   const ToolsHome({
     super.key,
-    required this.onOpenCalculator,\n    required this.onOpenCurrencyConverter,
+    required this.onOpenCalculator,
+    required this.onOpenCurrencyConverter,
   });
 
   static const Color background = Color(0xFF071426);
