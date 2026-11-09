@@ -6,6 +6,7 @@ import 'dart:io';
 import 'package:flutter/material.dart';
 import 'package:speech_to_text/speech_to_text.dart';
 import 'tools/smart_calculator.dart';
+import 'tools/currency_converter.dart';
 import 'tools/tools_home.dart';
 
 void main() {
@@ -415,7 +416,7 @@ class _BujjiHomeScreenState extends State<BujjiHomeScreen> {
                       ? _buildHomeContent()
                       : selectedIndex == 1
                           ? ToolsHome(
-                              onOpenCalculator: () {
+                              onOpenCurrencyConverter: () {\n                                Navigator.of(context).push(\n                                  MaterialPageRoute(\n                                    builder: (context) =>\n                                        const CurrencyConverter(),\n                                  ),\n                                );\n                              },\n                              onOpenCalculator: () {
                                 Navigator.of(context).push(
                                   MaterialPageRoute(
                                     builder: (context) =>
