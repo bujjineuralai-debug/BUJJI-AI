@@ -155,7 +155,7 @@ class _VisionPageState extends State<_VisionPage> {
 
       if (mounted) setState(() => answer = text);
     } catch (error) {
-      msg('విశ్లేషణ విఫలమైంది: ${error.toString().replaceFirst('Exception: ', '')}');
+      msg('విశ్లేషణ విఫలమైంది: ${error.toString().replaceFirst("Exception: ", "")}');
     } finally {
       client?.close(force: true);
       if (mounted) setState(() => busy = false);
