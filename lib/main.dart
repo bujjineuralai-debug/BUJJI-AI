@@ -5,6 +5,8 @@ import 'dart:io';
 
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
+import 'package:firebase_core/firebase_core.dart';
+import 'firebase_options.dart';
 import 'package:speech_to_text/speech_to_text.dart';
 import 'tools/smart_calculator.dart';
 import 'tools/currency_converter.dart';
@@ -17,7 +19,11 @@ import 'menu/help_support.dart';
 import 'menu/privacy_security.dart';
 import 'menu/menu_features.dart';
 
-void main() {
+Future<void> main() async {
+  WidgetsFlutterBinding.ensureInitialized();
+  await Firebase.initializeApp(
+    options: DefaultFirebaseOptions.android,
+  );
   runApp(const BujjiAIApp());
 }
 
