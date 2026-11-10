@@ -91,7 +91,28 @@ class _MyAccountScreenState extends State<MyAccountScreen> {
   }
 
   Future<void> _refresh() async {
-    await FirebaseAuth.instance.currentUser?.reload();
+    final auth = FirebaseAuth.instance;
+    await auth.currentUser?.reload();
+    final user = auth.currentUser;
+    if (user != null) {
+      try {
+        final reference = FirebaseFirestore.instance.collection('users').doc(user.uid);
+        final snapshot = await reference.get();
+        final data = snapshot.data();
+        final localPrefs = await SharedPreferences.getInstance();
+        final localName = localPrefs.getString('account_name') ?? '';
+        final cloudName = data?['displayName']?.toString() ?? '';
+        if (cloudName.isEmpty && (user.displayName ?? '').isEmpty && localName.isNotEmpty) {
+          await user.updateDisplayName(localName);
+        }
+        await _saveCloudProfile(
+          auth.currentUser!,
+          name: cloudName.isEmpty ? localName : cloudName,
+        );
+      } catch (_) {
+        // Firestore rules may be awaiting publication; local profile remains safe.
+      }
+    }
     await _load();
   }
 
