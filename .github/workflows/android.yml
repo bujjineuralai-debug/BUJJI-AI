@@ -75,7 +75,7 @@ jobs:
           storePassword=$ANDROID_KEYSTORE_PASSWORD
           keyPassword=$ANDROID_KEYSTORE_PASSWORD
           keyAlias=$ANDROID_KEY_ALIAS
-          storeFile=app/bujji-upload-key.jks
+          storeFile=bujji-upload-key.jks
           EOF
           python3 - <<'PY'
           from pathlib import Path
