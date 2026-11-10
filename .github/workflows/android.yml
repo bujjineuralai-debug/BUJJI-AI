@@ -60,23 +60,99 @@ jobs:
             sed -i 's/minSdkVersion flutter.minSdkVersion/minSdkVersion 23/' android/app/build.gradle
           fi
 
+      - name: Configure stable Android release signing
+        env:
+          ANDROID_KEYSTORE_BASE64: ${{ secrets.ANDROID_KEYSTORE_BASE64 }}
+          ANDROID_KEYSTORE_PASSWORD: ${{ secrets.ANDROID_KEYSTORE_PASSWORD }}
+          ANDROID_KEY_ALIAS: ${{ secrets.ANDROID_KEY_ALIAS }}
+        run: |
+          set -euo pipefail
+          test -n "$ANDROID_KEYSTORE_BASE64"
+          test -n "$ANDROID_KEYSTORE_PASSWORD"
+          test -n "$ANDROID_KEY_ALIAS"
+          echo "$ANDROID_KEYSTORE_BASE64" | base64 --decode > android/app/bujji-upload-key.jks
+          cat > android/key.properties <<EOF
+          storePassword=$ANDROID_KEYSTORE_PASSWORD
+          keyPassword=$ANDROID_KEYSTORE_PASSWORD
+          keyAlias=$ANDROID_KEY_ALIAS
+          storeFile=app/bujji-upload-key.jks
+          EOF
+          python3 - <<'PY'
+          from pathlib import Path
+
+          kts = Path("android/app/build.gradle.kts")
+          groovy = Path("android/app/build.gradle")
+
+          if kts.exists():
+              p = kts
+              s = p.read_text()
+              if "val keystoreProperties = Properties()" not in s:
+                  s = "import java.util.Properties\nimport java.io.FileInputStream\n\n" + s
+                  anchor = "android {"
+                  if anchor not in s:
+                      raise SystemExit("Could not find android block in Kotlin Gradle file")
+                  props = """val keystoreProperties = Properties()
+          val keystorePropertiesFile = rootProject.file("key.properties")
+          keystoreProperties.load(FileInputStream(keystorePropertiesFile))
+
+          """
+                  s = s.replace(anchor, props + anchor, 1)
+              signing_block = """    signingConfigs {
+                  create("release") {
+                      keyAlias = keystoreProperties["keyAlias"] as String
+                      keyPassword = keystoreProperties["keyPassword"] as String
+                      storeFile = file(keystoreProperties["storeFile"] as String)
+                      storePassword = keystoreProperties["storePassword"] as String
+                  }
+              }
+
+          """
+              if 'create("release")' not in s:
+                  s = s.replace("    buildTypes {", signing_block + "    buildTypes {", 1)
+              s = s.replace('signingConfig = signingConfigs.getByName("debug")',
+                            'signingConfig = signingConfigs.getByName("release")')
+              if 'signingConfig = signingConfigs.getByName("release")' not in s:
+                  raise SystemExit("Could not set release signing in Kotlin Gradle file")
+          elif groovy.exists():
+              p = groovy
+              s = p.read_text()
+              if "keystoreProperties = new Properties()" not in s:
+                  s = "import java.util.Properties\nimport java.io.FileInputStream\n\n" + s
+                  props = """def keystoreProperties = new Properties()
+          def keystorePropertiesFile = rootProject.file('key.properties')
+          keystoreProperties.load(new FileInputStream(keystorePropertiesFile))
+
+          """
+                  s = s.replace("android {", props + "android {", 1)
+              signing_block = """    signingConfigs {
+                  release {
+                      keyAlias keystoreProperties['keyAlias']
+                      keyPassword keystoreProperties['keyPassword']
+                      storeFile file(keystoreProperties['storeFile'])
+                      storePassword keystoreProperties['storePassword']
+                  }
+              }
+
+          """
+              if "signingConfigs {" not in s:
+                  s = s.replace("    buildTypes {", signing_block + "    buildTypes {", 1)
+              s = s.replace("signingConfig signingConfigs.debug", "signingConfig signingConfigs.release")
+              s = s.replace("signingConfig = signingConfigs.debug", "signingConfig = signingConfigs.release")
+              if "signingConfigs.release" not in s:
+                  raise SystemExit("Could not set release signing in Groovy Gradle file")
+          else:
+              raise SystemExit("Generated Android Gradle file not found")
+          p.write_text(s)
+          PY
+          chmod 600 android/key.properties android/app/bujji-upload-key.jks
+          keytool -list -v -keystore android/app/bujji-upload-key.jks -storepass "$ANDROID_KEYSTORE_PASSWORD" -alias "$ANDROID_KEY_ALIAS" | grep -E 'SHA1:|SHA256:'
+
       - name: Install Dependencies
         run: flutter pub get
 
-      - name: Report Android signing fingerprints
+      - name: Verify stable release signing configuration
         run: |
-          mkdir -p "$HOME/.config/.android"
-          if [ ! -f "$HOME/.config/.android/debug.keystore" ]; then
-            keytool -genkeypair -v \
-              -keystore "$HOME/.config/.android/debug.keystore" \
-              -storepass android \
-              -keypass android \
-              -alias AndroidDebugKey \
-              -dname "CN=Android Debug,O=Android,C=US" \
-              -keyalg RSA -keysize 2048 -validity 10000
-          fi
-          cd android
-          ./gradlew signingReport
+          grep -q 'signingConfig.*release' android/app/build.gradle.kts 2>/dev/null || grep -q 'signingConfigs.release' android/app/build.gradle
 
       - name: Generate BUJJI AI Launcher Icon
         run: dart run flutter_launcher_icons
