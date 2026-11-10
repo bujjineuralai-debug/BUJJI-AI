@@ -1,7 +1,9 @@
 import 'package:flutter/material.dart';
 
 class BujjiMenuHome extends StatelessWidget {
-  const BujjiMenuHome({super.key});
+  final VoidCallback onOpenAbout;
+
+  const BujjiMenuHome({super.key, required this.onOpenAbout});
 
   static const Color background = Color(0xFF071426);
   static const Color card = Color(0xFF10243D);
@@ -97,7 +99,13 @@ class BujjiMenuHome extends StatelessWidget {
                   borderRadius: BorderRadius.circular(17),
                   child: InkWell(
                     borderRadius: BorderRadius.circular(17),
-                    onTap: () => _showComingSoon(context, item),
+                    onTap: () {
+                      if (item.title == 'About BUJJI AI') {
+                        onOpenAbout();
+                      } else {
+                        _showComingSoon(context, item);
+                      }
+                    },
                     child: Container(
                       padding: const EdgeInsets.all(14),
                       decoration: BoxDecoration(
