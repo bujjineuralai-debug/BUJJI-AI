@@ -3,11 +3,13 @@ import 'package:flutter/material.dart';
 class BujjiMenuHome extends StatelessWidget {
   final VoidCallback onOpenAbout;
   final VoidCallback onOpenFeedback;
+  final VoidCallback onOpenHelp;
 
   const BujjiMenuHome({
     super.key,
     required this.onOpenAbout,
     required this.onOpenFeedback,
+    required this.onOpenHelp,
   });
 
   static const Color background = Color(0xFF071426);
@@ -109,6 +111,8 @@ class BujjiMenuHome extends StatelessWidget {
                         onOpenAbout();
                       } else if (item.title == 'Feedback & Suggestions') {
                         onOpenFeedback();
+                      } else if (item.title == 'Help & Support') {
+                        onOpenHelp();
                       } else {
                         _showComingSoon(context, item);
                       }
