@@ -10,6 +10,7 @@ import 'tools/smart_calculator.dart';
 import 'tools/currency_converter.dart';
 import 'tools/tools_home.dart';
 import 'tools/feature_tools.dart';
+import 'menu/menu_home.dart';
 
 void main() {
   runApp(const BujjiAIApp());
@@ -273,6 +274,7 @@ class _BujjiHomeScreenState extends State<BujjiHomeScreen> {
     'History',
     'Favorites',
     'Explore',
+    'Menu',
   ];
 
   final List<IconData> navigationIcons = [
@@ -281,6 +283,7 @@ class _BujjiHomeScreenState extends State<BujjiHomeScreen> {
     Icons.history_rounded,
     Icons.favorite_border_rounded,
     Icons.explore_outlined,
+    Icons.menu_rounded,
   ];
 
   @override
@@ -582,7 +585,9 @@ class _BujjiHomeScreenState extends State<BujjiHomeScreen> {
                                 Navigator.of(context).push(MaterialPageRoute(builder: (context) => const VoiceStudioScreen()));
                               },
                             )
-                          : _buildSectionContent(),
+                          : selectedIndex == 5
+                              ? const BujjiMenuHome()
+                              : _buildSectionContent(),
                 ),
                 if (selectedIndex == 0) _buildComposer(),
                 _buildBottomNavigation(),
