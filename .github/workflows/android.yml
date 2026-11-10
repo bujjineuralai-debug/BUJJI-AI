@@ -65,6 +65,16 @@ jobs:
 
       - name: Report Android signing fingerprints
         run: |
+          mkdir -p "$HOME/.config/.android"
+          if [ ! -f "$HOME/.config/.android/debug.keystore" ]; then
+            keytool -genkeypair -v \
+              -keystore "$HOME/.config/.android/debug.keystore" \
+              -storepass android \
+              -keypass android \
+              -alias AndroidDebugKey \
+              -dname "CN=Android Debug,O=Android,C=US" \
+              -keyalg RSA -keysize 2048 -validity 10000
+          fi
           cd android
           ./gradlew signingReport
 
