@@ -14,6 +14,14 @@
       },
       "oauth_client": [
         {
+          "client_id": "924828656704-8cg8c1f12ku6nq3igshu40jr08ahcrmm.apps.googleusercontent.com",
+          "client_type": 1,
+          "android_info": {
+            "package_name": "com.example.bujji_ai",
+            "certificate_hash": "82d0ebfe95f3308c5ba3f9c79ffd8601d0448a9f"
+          }
+        },
+        {
           "client_id": "924828656704-kk44oad5caing6nco22k8cu2v3qeg0ep.apps.googleusercontent.com",
           "client_type": 3
         }
