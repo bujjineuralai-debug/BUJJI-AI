@@ -181,20 +181,121 @@ class MyAccountScreen extends StatefulWidget {
   const MyAccountScreen({super.key});
   @override State<MyAccountScreen> createState()=>_MyAccountScreenState();
 }
+
 class _MyAccountScreenState extends State<MyAccountScreen>{
   final _name=TextEditingController(),_email=TextEditingController();
+
   @override void initState(){super.initState();_load();}
-  Future<void> _load()async{final p=await SharedPreferences.getInstance();_name.text=p.getString('account_name')??'';_email.text=p.getString('account_email')??'';if(mounted)setState((){});}
-  Future<void> _save()async{final p=await SharedPreferences.getInstance();await p.setString('account_name',_name.text.trim());await p.setString('account_email',_email.text.trim());if(mounted)ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content:Text('Profile saved on this device.')));}
+
+  Future<void> _load()async{
+    final p=await SharedPreferences.getInstance();
+    _name.text=p.getString('account_name')??'';
+    _email.text=p.getString('account_email')??'';
+    if(mounted)setState((){});
+  }
+
+  Future<void> _save()async{
+    final p=await SharedPreferences.getInstance();
+    await p.setString('account_name',_name.text.trim());
+    await p.setString('account_email',_email.text.trim());
+    if(mounted)ScaffoldMessenger.of(context).showSnackBar(
+      const SnackBar(content:Text('Profile saved on this device.')));
+  }
+
+  void _showSetupMessage(String title,String detail){
+    showDialog<void>(
+      context:context,
+      builder:(dialogContext)=>AlertDialog(
+        backgroundColor:_panel,
+        title:Text(title,style:const TextStyle(color:Colors.white,fontWeight:FontWeight.bold)),
+        content:Text(detail,style:const TextStyle(color:_muted,height:1.5)),
+        actions:[TextButton(
+          onPressed:()=>Navigator.pop(dialogContext),
+          child:const Text('OK',style:TextStyle(color:_cyan)),
+        )],
+      ),
+    );
+  }
+
+  Widget _authOption({
+    required IconData icon,
+    required String title,
+    required String subtitle,
+    required VoidCallback onTap,
+  })=>Card(
+    color:_panel,
+    margin:const EdgeInsets.only(bottom:10),
+    shape:RoundedRectangleBorder(borderRadius:BorderRadius.circular(14)),
+    child:ListTile(
+      contentPadding:const EdgeInsets.symmetric(horizontal:14,vertical:5),
+      leading:Icon(icon,color:_cyan,size:27),
+      title:Text(title,style:const TextStyle(color:Colors.white,fontWeight:FontWeight.w600)),
+      subtitle:Text(subtitle,style:const TextStyle(color:_muted,fontSize:12)),
+      trailing:const Icon(Icons.arrow_forward_ios_rounded,color:_muted,size:16),
+      onTap:onTap,
+    ),
+  );
+
   @override void dispose(){_name.dispose();_email.dispose();super.dispose();}
-  @override Widget build(BuildContext context)=>_MenuPage(title:'My Account',icon:Icons.account_circle_rounded,child:ListView(padding:const EdgeInsets.all(18),children:[
-    const Icon(Icons.account_circle_rounded,color:_cyan,size:68),const SizedBox(height:10),
-    const Text('Your BUJJI profile',textAlign:TextAlign.center,style:TextStyle(color:Colors.white,fontSize:21,fontWeight:FontWeight.bold)),
-    const SizedBox(height:18),
-    TextField(controller:_name,style:const TextStyle(color:Colors.white),decoration:InputDecoration(labelText:'Display name',labelStyle:const TextStyle(color:_muted),filled:true,fillColor:_panel,border:OutlineInputBorder(borderRadius:BorderRadius.circular(12)))),
-    const SizedBox(height:12),
-    TextField(controller:_email,keyboardType:TextInputType.emailAddress,style:const TextStyle(color:Colors.white),decoration:InputDecoration(labelText:'Email (optional)',labelStyle:const TextStyle(color:_muted),filled:true,fillColor:_panel,border:OutlineInputBorder(borderRadius:BorderRadius.circular(12)))),
-    const SizedBox(height:16),SizedBox(width:double.infinity,child:ElevatedButton(onPressed:_save,style:ElevatedButton.styleFrom(backgroundColor:_cyan,foregroundColor:_bg),child:const Text('Save profile'))),
-    const SizedBox(height:12),const Text('This is a local profile on this device. BUJJI Account sign-in, cloud sync and password management are not connected yet.',style:TextStyle(color:_muted,height:1.5))
-  ]));
+
+  @override Widget build(BuildContext context)=>_MenuPage(
+    title:'My Account',
+    icon:Icons.account_circle_rounded,
+    child:ListView(padding:const EdgeInsets.all(18),children:[
+      const Icon(Icons.account_circle_rounded,color:_cyan,size:68),
+      const SizedBox(height:10),
+      const Text('Your BUJJI profile',textAlign:TextAlign.center,
+        style:TextStyle(color:Colors.white,fontSize:21,fontWeight:FontWeight.bold)),
+      const SizedBox(height:18),
+      TextField(controller:_name,style:const TextStyle(color:Colors.white),
+        decoration:InputDecoration(labelText:'Display name',labelStyle:const TextStyle(color:_muted),
+          filled:true,fillColor:_panel,border:OutlineInputBorder(borderRadius:BorderRadius.circular(12)))),
+      const SizedBox(height:12),
+      TextField(controller:_email,keyboardType:TextInputType.emailAddress,
+        style:const TextStyle(color:Colors.white),
+        decoration:InputDecoration(labelText:'Email (optional)',labelStyle:const TextStyle(color:_muted),
+          filled:true,fillColor:_panel,border:OutlineInputBorder(borderRadius:BorderRadius.circular(12)))),
+      const SizedBox(height:12),
+      SizedBox(width:double.infinity,child:ElevatedButton(
+        onPressed:_save,
+        style:ElevatedButton.styleFrom(backgroundColor:_cyan,foregroundColor:_bg),
+        child:const Text('Save profile'))),
+      const SizedBox(height:24),
+      const Text('BUJJI ACCOUNT',style:TextStyle(color:_cyan,fontSize:13,fontWeight:FontWeight.bold,letterSpacing:1.1)),
+      const SizedBox(height:10),
+      _authOption(
+        icon:Icons.person_add_alt_1_rounded,
+        title:'Mobile Signup',
+        subtitle:'Create an account with your phone number and OTP',
+        onTap:()=>_showSetupMessage('Mobile Signup',
+          'ఈ ఎంపిక స్క్రీన్‌లో జోడించబడింది. Phone OTP signup flow ను తర్వాతి దశలో Firebase తో అనుసంధానం చేసి పరీక్షిస్తాం.')),
+      _authOption(
+        icon:Icons.phone_android_rounded,
+        title:'Mobile Login',
+        subtitle:'Sign in using your verified phone number',
+        onTap:()=>_showSetupMessage('Mobile Login',
+          'ఈ ఎంపిక స్క్రీన్‌లో జోడించబడింది. నిజమైన Mobile Login పనిచేయడానికి Firebase Phone Auth flow ను అమలు చేసి పరీక్షించాలి.')),
+      _authOption(
+        icon:Icons.g_mobiledata_rounded,
+        title:'Continue with Google',
+        subtitle:'Sign in securely with your Google account',
+        onTap:()=>_showSetupMessage('Continue with Google',
+          'Google provider Firebase లో Enabled ఉంది. App లో Google Sign-In integration మరియు device testing ఇంకా చేయాలి.')),
+      _authOption(
+        icon:Icons.email_outlined,
+        title:'Email Signup / Login',
+        subtitle:'Create an account or sign in with your email',
+        onTap:()=>_showSetupMessage('Email Signup / Login',
+          'ఈ ఎంపిక స్క్రీన్‌లో జోడించబడింది. Firebase Email/Password authentication మరియు email verification link flow ను తర్వాతి దశలో అమలు చేస్తాం.')),
+      _authOption(
+        icon:Icons.lock_reset_rounded,
+        title:'Forgot Password / Account Recovery',
+        subtitle:'Recover access to your BUJJI account',
+        onTap:()=>_showSetupMessage('Account Recovery',
+          'Account recovery flow ను తర్వాతి దశలో verified email లేదా phone verification ఆధారంగా సురక్షితంగా అమలు చేస్తాం.')),
+      const SizedBox(height:8),
+      const Text('గమనిక: పై ఐదు account options ప్రస్తుతం UI లో మాత్రమే ఉన్నాయి. Firebase authentication flows ఇంకా కనెక్ట్ కాలేదు. ఈ దశలో profile save మాత్రమే ఈ device లో పనిచేస్తుంది.',
+        style:TextStyle(color:_muted,height:1.5,fontSize:12)),
+    ]),
+  );
 }
