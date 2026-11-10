@@ -2,8 +2,13 @@ import 'package:flutter/material.dart';
 
 class BujjiMenuHome extends StatelessWidget {
   final VoidCallback onOpenAbout;
+  final VoidCallback onOpenFeedback;
 
-  const BujjiMenuHome({super.key, required this.onOpenAbout});
+  const BujjiMenuHome({
+    super.key,
+    required this.onOpenAbout,
+    required this.onOpenFeedback,
+  });
 
   static const Color background = Color(0xFF071426);
   static const Color card = Color(0xFF10243D);
@@ -102,6 +107,8 @@ class BujjiMenuHome extends StatelessWidget {
                     onTap: () {
                       if (item.title == 'About BUJJI AI') {
                         onOpenAbout();
+                      } else if (item.title == 'Feedback & Suggestions') {
+                        onOpenFeedback();
                       } else {
                         _showComingSoon(context, item);
                       }
