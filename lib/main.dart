@@ -15,6 +15,7 @@ import 'menu/about_bujji_ai.dart';
 import 'menu/feedback_suggestions.dart';
 import 'menu/help_support.dart';
 import 'menu/privacy_security.dart';
+import 'menu/menu_features.dart';
 
 void main() {
   runApp(const BujjiAIApp());
@@ -619,6 +620,12 @@ class _BujjiHomeScreenState extends State<BujjiHomeScreen> {
                                       ),
                                     );
                                   },
+                                  onOpenAccount: () => Navigator.of(context).push(MaterialPageRoute(builder: (_) => const MyAccountScreen())),
+                                  onOpenSettings: () => Navigator.of(context).push(MaterialPageRoute(builder: (_) => const AppSettingsScreen())),
+                                  onOpenVoice: () => Navigator.of(context).push(MaterialPageRoute(builder: (_) => const VoiceTranslationScreen())),
+                                  onOpenLearning: () => Navigator.of(context).push(MaterialPageRoute(builder: (_) => const MyLearningScreen())),
+                                  onOpenPremium: () => Navigator.of(context).push(MaterialPageRoute(builder: (_) => const BujjiPremiumScreen())),
+                                  onOpenShare: () => Navigator.of(context).push(MaterialPageRoute(builder: (_) => const ShareBujjiScreen())),
                                 )
                               : _buildSectionContent(),
                 ),
