@@ -13,6 +13,7 @@ import 'tools/feature_tools.dart';
 import 'menu/menu_home.dart';
 import 'menu/about_bujji_ai.dart';
 import 'menu/feedback_suggestions.dart';
+import 'menu/help_support.dart';
 
 void main() {
   runApp(const BujjiAIApp());
@@ -600,6 +601,13 @@ class _BujjiHomeScreenState extends State<BujjiHomeScreen> {
                                     Navigator.of(context).push(
                                       MaterialPageRoute(
                                         builder: (_) => const FeedbackSuggestionsScreen(),
+                                      ),
+                                    );
+                                  },
+                                  onOpenHelp: () {
+                                    Navigator.of(context).push(
+                                      MaterialPageRoute(
+                                        builder: (_) => const HelpSupportScreen(),
                                       ),
                                     );
                                   },
