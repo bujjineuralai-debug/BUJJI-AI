@@ -28,6 +28,7 @@ String _authError(FirebaseAuthException e) {
     case 'invalid-verification-code': return 'The OTP is incorrect. Please check it and retry.';
     case 'session-expired': return 'The OTP expired. Please request a new code.';
     case 'quota-exceeded': return 'The Firebase SMS quota has been reached. Try again later.';
+    case 'billing-not-enabled': return 'Real SMS OTP requires Firebase billing to be enabled for this project. Test phone numbers can still be used without sending SMS.';
     default: return e.message ?? 'Authentication failed. Please try again.';
   }
 }
