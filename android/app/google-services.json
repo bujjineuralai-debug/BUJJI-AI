@@ -1,0 +1,39 @@
+{
+  "project_info": {
+    "project_number": "924828656704",
+    "project_id": "bujji-ai-2e2af",
+    "storage_bucket": "bujji-ai-2e2af.firebasestorage.app"
+  },
+  "client": [
+    {
+      "client_info": {
+        "mobilesdk_app_id": "1:924828656704:android:4951d1764f058e794aaba5",
+        "android_client_info": {
+          "package_name": "com.example.bujji_ai"
+        }
+      },
+      "oauth_client": [
+        {
+          "client_id": "924828656704-kk44oad5caing6nco22k8cu2v3qeg0ep.apps.googleusercontent.com",
+          "client_type": 3
+        }
+      ],
+      "api_key": [
+        {
+          "current_key": "AIzaSyCIYT9YSWhNbEu-sok0Gw30V0s4aKFM5yQ"
+        }
+      ],
+      "services": {
+        "appinvite_service": {
+          "other_platform_oauth_client": [
+            {
+              "client_id": "924828656704-kk44oad5caing6nco22k8cu2v3qeg0ep.apps.googleusercontent.com",
+              "client_type": 3
+            }
+          ]
+        }
+      }
+    }
+  ],
+  "configuration_version": "1"
+}
