@@ -11,6 +11,7 @@ import 'tools/currency_converter.dart';
 import 'tools/tools_home.dart';
 import 'tools/feature_tools.dart';
 import 'menu/menu_home.dart';
+import 'menu/about_bujji_ai.dart';
 
 void main() {
   runApp(const BujjiAIApp());
@@ -586,7 +587,15 @@ class _BujjiHomeScreenState extends State<BujjiHomeScreen> {
                               },
                             )
                           : selectedIndex == 5
-                              ? const BujjiMenuHome()
+                              ? BujjiMenuHome(
+                                  onOpenAbout: () {
+                                    Navigator.of(context).push(
+                                      MaterialPageRoute(
+                                        builder: (_) => const AboutBujjiAIScreen(),
+                                      ),
+                                    );
+                                  },
+                                )
                               : _buildSectionContent(),
                 ),
                 if (selectedIndex == 0) _buildComposer(),
