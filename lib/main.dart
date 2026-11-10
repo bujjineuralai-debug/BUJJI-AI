@@ -14,6 +14,7 @@ import 'menu/menu_home.dart';
 import 'menu/about_bujji_ai.dart';
 import 'menu/feedback_suggestions.dart';
 import 'menu/help_support.dart';
+import 'menu/privacy_security.dart';
 
 void main() {
   runApp(const BujjiAIApp());
@@ -608,6 +609,13 @@ class _BujjiHomeScreenState extends State<BujjiHomeScreen> {
                                     Navigator.of(context).push(
                                       MaterialPageRoute(
                                         builder: (_) => const HelpSupportScreen(),
+                                      ),
+                                    );
+                                  },
+                                  onOpenPrivacy: () {
+                                    Navigator.of(context).push(
+                                      MaterialPageRoute(
+                                        builder: (_) => const PrivacySecurityScreen(),
                                       ),
                                     );
                                   },
