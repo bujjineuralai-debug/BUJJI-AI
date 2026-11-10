@@ -5,6 +5,12 @@ class BujjiMenuHome extends StatelessWidget {
   final VoidCallback onOpenFeedback;
   final VoidCallback onOpenHelp;
   final VoidCallback onOpenPrivacy;
+  final VoidCallback onOpenAccount;
+  final VoidCallback onOpenSettings;
+  final VoidCallback onOpenVoice;
+  final VoidCallback onOpenLearning;
+  final VoidCallback onOpenPremium;
+  final VoidCallback onOpenShare;
 
   const BujjiMenuHome({
     super.key,
@@ -12,6 +18,12 @@ class BujjiMenuHome extends StatelessWidget {
     required this.onOpenFeedback,
     required this.onOpenHelp,
     required this.onOpenPrivacy,
+    required this.onOpenAccount,
+    required this.onOpenSettings,
+    required this.onOpenVoice,
+    required this.onOpenLearning,
+    required this.onOpenPremium,
+    required this.onOpenShare,
   });
 
   static const Color background = Color(0xFF071426);
@@ -117,6 +129,18 @@ class BujjiMenuHome extends StatelessWidget {
                         onOpenHelp();
                       } else if (item.title == 'Privacy & Security') {
                         onOpenPrivacy();
+                      } else if (item.title == 'My Account') {
+                        onOpenAccount();
+                      } else if (item.title == 'App Settings') {
+                        onOpenSettings();
+                      } else if (item.title == 'Voice & Translation') {
+                        onOpenVoice();
+                      } else if (item.title == 'My Learning') {
+                        onOpenLearning();
+                      } else if (item.title == 'BUJJI Premium') {
+                        onOpenPremium();
+                      } else if (item.title == 'Share BUJJI AI') {
+                        onOpenShare();
                       } else {
                         _showComingSoon(context, item);
                       }
