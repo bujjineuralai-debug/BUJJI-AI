@@ -407,10 +407,10 @@ export default {
           task: "query",
           image,
           question,
-          reasoning: false,
+          reasoning: true,
           stream: false,
-          max_tokens: 600,
-          temperature: 0.2,
+          max_tokens: 800,
+          temperature: 0.1,
         });
 
         const answer = result && typeof result.answer === "string"
