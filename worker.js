@@ -405,6 +405,13 @@ export default {
 
         // Keep reasoning disabled so the model reserves its token budget for
         // the user-facing answer. The query task normally returns { answer }.
+        const describeResultShape = (value) => {
+          if (value === null || value === undefined) return "null";
+          if (typeof value === "string") return `string(length=${value.length})`;
+          if (typeof value !== "object") return typeof value;
+          return `object(keys=${Object.keys(value).slice(0, 12).join(",") || "none"})`;
+        };
+
         let result = await env.AI.run("@cf/moondream/moondream3.1-9B-A2B", {
           task: "query",
           image,
@@ -415,9 +422,25 @@ export default {
           temperature: 0.1,
         });
 
+        const queryShape = describeResultShape(result);
+        const queryAnswerType = result?.answer === null ? "null" : typeof result?.answer;
+        const queryAnswerLength = typeof result?.answer === "string" ? result.answer.trim().length : 0;
+        const queryFinishReason = result?.finish_reason ?? "not-provided";
+        console.log("BUJJI Vision query diagnostics:", requestId, {
+          result: queryShape,
+          answerType: queryAnswerType,
+          answerLength: queryAnswerLength,
+          finishReason: queryFinishReason,
+        });
+
         let answer = result && typeof result.answer === "string"
           ? result.answer.trim()
           : "";
+
+        let captionShape = "not-run";
+        let captionType = "not-run";
+        let captionLength = 0;
+        let captionFinishReason = "not-run";
 
         // A caption fallback makes the tool resilient if query returns no answer.
         if (!answer) {
@@ -430,16 +453,28 @@ export default {
             max_tokens: 800,
             temperature: 0.1,
           });
+          captionShape = describeResultShape(result);
+          captionType = result?.caption === null ? "null" : typeof result?.caption;
+          captionLength = typeof result?.caption === "string" ? result.caption.trim().length : 0;
+          captionFinishReason = result?.finish_reason ?? "not-provided";
+          console.log("BUJJI Vision caption diagnostics:", requestId, {
+            result: captionShape,
+            captionType,
+            captionLength,
+            finishReason: captionFinishReason,
+          });
           answer = result && typeof result.caption === "string"
             ? result.caption.trim()
             : "";
         }
 
         if (!answer) {
-          console.error("BUJJI Vision returned no query answer or caption:", requestId);
+          const detail = `query=${queryShape}; answerType=${queryAnswerType}; answerLength=${queryAnswerLength}; queryFinish=${queryFinishReason}; caption=${captionShape}; captionType=${captionType}; captionLength=${captionLength}; captionFinish=${captionFinishReason}`;
+          console.error("BUJJI Vision returned no query answer or caption:", requestId, detail);
           return jsonResponse({
             success: false,
-            error: "AI could not produce a description for this image. Please try a clearer photo.",
+            error: "AI returned an empty vision result. Diagnostic details are attached.",
+            detail,
             requestId,
           }, 502);
         }
