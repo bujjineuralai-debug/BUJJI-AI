@@ -403,25 +403,43 @@ export default {
 
         console.log("BUJJI Vision request started:", requestId);
 
-        const result = await env.AI.run("@cf/moondream/moondream3.1-9B-A2B", {
+        // Keep reasoning disabled so the model reserves its token budget for
+        // the user-facing answer. The query task normally returns { answer }.
+        let result = await env.AI.run("@cf/moondream/moondream3.1-9B-A2B", {
           task: "query",
           image,
           question,
-          reasoning: true,
+          reasoning: false,
           stream: false,
-          max_tokens: 800,
+          max_tokens: 1200,
           temperature: 0.1,
         });
 
-        const answer = result && typeof result.answer === "string"
+        let answer = result && typeof result.answer === "string"
           ? result.answer.trim()
           : "";
 
+        // A caption fallback makes the tool resilient if query returns no answer.
         if (!answer) {
-          console.error("BUJJI Vision returned an empty response:", requestId);
+          console.warn("BUJJI Vision query returned no answer; trying caption fallback:", requestId);
+          result = await env.AI.run("@cf/moondream/moondream3.1-9B-A2B", {
+            task: "caption",
+            image,
+            caption_length: "long",
+            stream: false,
+            max_tokens: 800,
+            temperature: 0.1,
+          });
+          answer = result && typeof result.caption === "string"
+            ? result.caption.trim()
+            : "";
+        }
+
+        if (!answer) {
+          console.error("BUJJI Vision returned no query answer or caption:", requestId);
           return jsonResponse({
             success: false,
-            error: "Vision model returned an empty response.",
+            error: "AI could not produce a description for this image. Please try a clearer photo.",
             requestId,
           }, 502);
         }
