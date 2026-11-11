@@ -68,8 +68,8 @@ class _VisionPageState extends State<_VisionPage> {
     try {
       final file = await picker.pickImage(
         source: source,
-        maxWidth: 1280,
-        imageQuality: 72,
+        maxWidth: 1600,
+        imageQuality: 85,
       );
       if (file == null || !mounted) return;
       setState(() {
@@ -99,7 +99,7 @@ class _VisionPageState extends State<_VisionPage> {
 
       final prompt = widget.room
           ? 'Analyze this room photo. Reply in simple Telugu. Suggest furniture layout, lighting, wall colours, storage and low-budget improvements. Do not invent details.'
-          : 'Identify the main object in this photo. Reply in simple Telugu. Explain what it is and its common use. If uncertain, say so.';
+          : 'Carefully inspect the entire photo and identify the main visible subject. It may be an object, device, tool, vehicle, plant, animal, food, landmark, symbol, document or another real-world thing. Give the most specific common name supported by the visible evidence. Explain the visual clues that support the identification and its usual purpose. If multiple things are visible, identify the main one first and mention other clearly visible items only when useful. Do not give a vague answer when a reasonable identification is possible. If two possibilities genuinely look similar, give up to two candidates and explain the uncertainty instead of inventing certainty. If the photo is too blurry, dark or incomplete, say exactly what is unclear and ask for a clearer photo. Reply in natural, simple Telugu script using this structure: గుర్తించినది; ఎలా గుర్తించాను; ఉపయోగం / వివరణ; నమ్మకం (ఎక్కువ, మధ్యస్థం లేదా తక్కువ). Never invent details that cannot be seen or reliably inferred.';
 
       client = HttpClient()
         ..connectionTimeout = const Duration(seconds: 20);
