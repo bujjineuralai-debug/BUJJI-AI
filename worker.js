@@ -159,8 +159,8 @@ async function runPrimaryModel(env, messages) {
   if (sources.length > 0) {
     const sourceText = sources
       .map((source, index) => `${index + 1}. ${source.title} — ${source.uri}`)
-      .join("\\n");
-    return `${reply}\\n\\nమూలాలు (Google Search):\\n${sourceText}`;
+      .join("\n");
+    return `${reply}\n\nమూలాలు (Google Search):\n${sourceText}`;
   }
 
   return reply;
