@@ -26,9 +26,9 @@ class BujjiMenuHome extends StatelessWidget {
     required this.onOpenShare,
   });
 
-  static const Color background = Color(0xFF071426);
-  static const Color card = Color(0xFF10243D);
-  static const Color cyan = Color(0xFF20D9E8);
+  static const Color background = Color(0xFF06101E);
+  static const Color card = Color(0xFF0B1B2D);
+  static const Color cyan = Color(0xFF25B8FF);
   static const Color gold = Color(0xFFFFC857);
 
   static const List<_MenuItem> items = [
@@ -58,7 +58,7 @@ class BujjiMenuHome extends StatelessWidget {
     showDialog<void>(
       context: context,
       builder: (dialogContext) => AlertDialog(
-        backgroundColor: const Color(0xFF10243D),
+        backgroundColor: const Color(0xFF0B1B2D),
         icon: Icon(item.icon, color: cyan, size: 32),
         title: Text(item.title,
             style: const TextStyle(
