@@ -187,12 +187,12 @@ async function runPrimaryModel(env, messages) {
       },
       body: JSON.stringify({
         systemInstruction: {
-          parts: [{ text: systemText + "\n\nCONVERSATIONAL QUALITY: Speak like a thoughtful, natural human conversation partner. Understand the user's intent and context before answering. Avoid canned, repetitive, robotic or overly formal wording. Use natural everyday language, appropriate warmth and varied sentence structure. Explain clearly when needed, but keep simple answers concise. Do not invent facts; say when unsure and ask one focused question if essential information is missing." }],
+          parts: [{ text: systemText + "\n\nCONVERSATIONAL QUALITY: Speak like a thoughtful, natural human conversation partner. Understand the user's intent and context before answering. Avoid canned, repetitive, robotic or overly formal wording. Use natural everyday language, appropriate warmth and varied sentence structure. Keep simple answers concise, but when the user asks for a full, detailed, step-by-step or multi-part explanation, answer every requested part with enough useful detail and examples. Do not stop after a short summary or omit requested sections. Organize long answers with clear headings and finish the explanation naturally. Do not invent facts; say when unsure and ask one focused question if essential information is missing." }],
         },
         contents,
         ...(enableGoogleSearch ? { tools: [{ google_search: {} }] } : {}),
         generationConfig: {
-          maxOutputTokens: 1024,
+          maxOutputTokens: 8192,
           temperature: 0.7,
         },
       }),
@@ -277,7 +277,7 @@ async function runChatModel(env, messages) {
 
     const result = await env.AI.run(FALLBACK_MODEL, {
       messages,
-      max_tokens: 1024,
+      max_tokens: 4096,
       temperature: 0.6,
     });
 
