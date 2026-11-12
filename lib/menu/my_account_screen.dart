@@ -2,6 +2,7 @@ import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:flutter/material.dart';
 import 'package:google_sign_in/google_sign_in.dart';
+import 'package:intl_phone_field/intl_phone_field.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 
 const _bg = Color(0xFF020A14);
@@ -27,6 +28,7 @@ String _authError(FirebaseAuthException e) {
     case 'invalid-verification-code': return 'The OTP is incorrect. Please check it and retry.';
     case 'session-expired': return 'The OTP expired. Please request a new code.';
     case 'quota-exceeded': return 'The Firebase SMS quota has been reached. Try again later.';
+    case 'billing-not-enabled': return 'Real SMS OTP requires Firebase billing to be enabled for this project. Test phone numbers can still be used without sending SMS.';
     default: return e.message ?? 'Authentication failed. Please try again.';
   }
 }
@@ -316,27 +318,20 @@ class _PhoneDialog extends StatefulWidget {
 class _PhoneDialogState extends State<_PhoneDialog> {
   final _name = TextEditingController(), _phone = TextEditingController(), _otp = TextEditingController();
   String? _verificationId, _error;
+  String _completePhoneNumber = '';
   bool _sent = false, _busy = false, _finished = false;
 
   @override
   void dispose() { _name.dispose(); _phone.dispose(); _otp.dispose(); super.dispose(); }
-
-  String _normalise(String input) {
-    final value = input.replaceAll(RegExp(r'[\s()-]'), '');
-    if (value.startsWith('+')) return value;
-    if (value.length == 10) return '+91$value';
-    if (value.startsWith('91') && value.length == 12) return '+$value';
-    return '+$value';
-  }
 
   Future<void> _send() async {
     if (_busy) return;
     if (widget.signup && _name.text.trim().isEmpty) {
       setState(() => _error = 'Enter your display name.'); return;
     }
-    final phone = _normalise(_phone.text.trim());
+    final phone = _completePhoneNumber.trim();
     if (!RegExp(r'^\+[1-9]\d{7,14}$').hasMatch(phone)) {
-      setState(() => _error = 'Enter a valid phone number. Use +91 for India.'); return;
+      setState(() => _error = 'Choose your country and enter a valid mobile number.'); return;
     }
     setState(() { _busy = true; _error = null; });
     try {
@@ -413,9 +408,30 @@ class _PhoneDialogState extends State<_PhoneDialog> {
       if (widget.signup) TextField(controller: _name, enabled: !_sent && !_busy,
         style: const TextStyle(color: Colors.white), decoration: const InputDecoration(labelText: 'Display name', labelStyle: TextStyle(color: _muted))),
       if (widget.signup) const SizedBox(height: 8),
-      TextField(controller: _phone, enabled: !_sent && !_busy, keyboardType: TextInputType.phone,
+      IntlPhoneField(
+        controller: _phone,
+        enabled: !_sent && !_busy,
+        initialCountryCode: 'IN',
+        disableLengthCheck: false,
+        keyboardType: TextInputType.phone,
         style: const TextStyle(color: Colors.white),
-        decoration: const InputDecoration(labelText: 'Mobile number (default +91)', hintText: '9876543210 or +919876543210', labelStyle: TextStyle(color: _muted), hintStyle: TextStyle(color: _muted))),
+        dropdownTextStyle: const TextStyle(color: Colors.white),
+        dropdownIcon: const Icon(Icons.arrow_drop_down, color: _cyan),
+        decoration: InputDecoration(
+          labelText: 'Mobile number',
+          labelStyle: const TextStyle(color: _muted),
+          hintText: 'Enter mobile number',
+          hintStyle: const TextStyle(color: _muted),
+          filled: true,
+          fillColor: _bg,
+          border: OutlineInputBorder(borderRadius: BorderRadius.circular(10)),
+          enabledBorder: OutlineInputBorder(
+            borderRadius: BorderRadius.circular(10),
+            borderSide: const BorderSide(color: _muted),
+          ),
+        ),
+        onChanged: (number) => _completePhoneNumber = number.completeNumber,
+      ),
       if (_sent) ...[
         const SizedBox(height: 10),
         TextField(controller: _otp, keyboardType: TextInputType.number, maxLength: 6,
