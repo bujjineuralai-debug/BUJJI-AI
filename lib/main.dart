@@ -37,7 +37,50 @@ class BujjiAIApp extends StatelessWidget {
       title: 'BUJJI AI',
       theme: ThemeData(
         brightness: Brightness.dark,
-        scaffoldBackgroundColor: const Color(0xFF030D1B),
+        scaffoldBackgroundColor: const Color(0xFF020A14),
+        colorScheme: const ColorScheme.dark(
+          primary: Color(0xFF25B8FF),
+          secondary: Color(0xFFFFC857),
+          surface: Color(0xFF0B1B2D),
+          error: Color(0xFFFF6B6B),
+        ),
+        appBarTheme: const AppBarTheme(
+          backgroundColor: Color(0xFF06101E),
+          foregroundColor: Colors.white,
+          elevation: 0,
+          centerTitle: false,
+        ),
+        cardTheme: CardThemeData(
+          color: const Color(0xFF0B1B2D),
+          elevation: 0,
+          shape: RoundedRectangleBorder(
+            borderRadius: BorderRadius.circular(16),
+            side: const BorderSide(color: Color(0x3325B8FF)),
+          ),
+        ),
+        inputDecorationTheme: InputDecorationTheme(
+          filled: true,
+          fillColor: const Color(0xFF0D1D30),
+          labelStyle: const TextStyle(color: Color(0xFF25B8FF)),
+          hintStyle: const TextStyle(color: Color(0xFF91A7BC)),
+          enabledBorder: OutlineInputBorder(
+            borderRadius: BorderRadius.circular(13),
+            borderSide: const BorderSide(color: Color(0x5525B8FF)),
+          ),
+          focusedBorder: OutlineInputBorder(
+            borderRadius: BorderRadius.circular(13),
+            borderSide: const BorderSide(color: Color(0xFFFFC857), width: 1.4),
+          ),
+        ),
+        elevatedButtonTheme: ElevatedButtonThemeData(
+          style: ElevatedButton.styleFrom(
+            backgroundColor: const Color(0xFF25B8FF),
+            foregroundColor: const Color(0xFF020A14),
+            shape: RoundedRectangleBorder(
+              borderRadius: BorderRadius.circular(13),
+            ),
+          ),
+        ),
         fontFamily: 'Roboto',
         useMaterial3: true,
       ),
@@ -69,10 +112,10 @@ class _BujjiStartupScreenState extends State<BujjiStartupScreen> {
 
   @override
   Widget build(BuildContext context) {
-    const cyan = Color(0xFF20D9E8);
+    const cyan = Color(0xFF25B8FF);
 
     return Scaffold(
-      backgroundColor: const Color(0xFF030D1B),
+      backgroundColor: const Color(0xFF020A14),
       body: Container(
         width: double.infinity,
         decoration: const BoxDecoration(
@@ -81,7 +124,7 @@ class _BujjiStartupScreenState extends State<BujjiStartupScreen> {
             end: Alignment.bottomCenter,
             colors: [
               Color(0xFF061426),
-              Color(0xFF030D1B),
+              Color(0xFF020A14),
               Color(0xFF06172A),
             ],
           ),
@@ -221,7 +264,7 @@ class _BujjiHomeScreenState extends State<BujjiHomeScreen> {
   Future<void> chooseMode() async {
     final BujjiMode? mode = await showModalBottomSheet<BujjiMode>(
       context: context,
-      backgroundColor: const Color(0xFF0B2035),
+      backgroundColor: const Color(0xFF0D1D30),
       shape: const RoundedRectangleBorder(
         borderRadius: BorderRadius.vertical(top: Radius.circular(22)),
       ),
@@ -276,7 +319,7 @@ class _BujjiHomeScreenState extends State<BujjiHomeScreen> {
 
   final List<ChatMessage> messages = [];
 
-  final Color cyan = const Color(0xFF20D9E8);
+  final Color cyan = const Color(0xFF25B8FF);
   final Color gold = const Color(0xFFFFC857);
 
   final List<String> navigationItems = [
@@ -549,7 +592,7 @@ class _BujjiHomeScreenState extends State<BujjiHomeScreen> {
             fontWeight: FontWeight.w500,
           ),
         ),
-        backgroundColor: const Color(0xFF142B42),
+        backgroundColor: const Color(0xFF10243B),
       ),
     );
   }
@@ -557,7 +600,7 @@ class _BujjiHomeScreenState extends State<BujjiHomeScreen> {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      backgroundColor: const Color(0xFF030D1B),
+      backgroundColor: const Color(0xFF020A14),
       body: Stack(
         children: [
           const Positioned.fill(
@@ -881,8 +924,8 @@ class _BujjiHomeScreenState extends State<BujjiHomeScreen> {
         ),
         decoration: BoxDecoration(
           color: isUser
-              ? const Color(0xFF123A50)
-              : const Color(0xFF0C2035),
+              ? const Color(0xFF102B44)
+              : const Color(0xFF0D1D30),
           borderRadius: BorderRadius.circular(17),
           border: Border.all(
             color: isUser
@@ -909,7 +952,7 @@ class _BujjiHomeScreenState extends State<BujjiHomeScreen> {
         margin: const EdgeInsets.symmetric(vertical: 8),
         padding: const EdgeInsets.all(14),
         decoration: BoxDecoration(
-          color: const Color(0xFF0C2035),
+          color: const Color(0xFF0D1D30),
           borderRadius: BorderRadius.circular(16),
           border: Border.all(
             color: cyan.withOpacity(0.35),
@@ -1344,7 +1387,7 @@ class _WritingAssistantScreenState extends State<WritingAssistantScreen> {
   bool isGenerating = false;
   String lastPrompt = '';
 
-  final Color cyan = const Color(0xFF20D9E8);
+  final Color cyan = const Color(0xFF25B8FF);
 
   @override
   void dispose() {
@@ -1446,7 +1489,7 @@ dates, addresses, or contact details. Use clear placeholders such as
         content: Text(
           message,
           style: const TextStyle(
-            color: Color(0xFF142B42),
+            color: Color(0xFF10243B),
             fontWeight: FontWeight.w600,
           ),
         ),
@@ -1469,11 +1512,11 @@ dates, addresses, or contact details. Use clear placeholders such as
         DropdownButtonFormField<String>(
           value: value,
           isExpanded: true,
-          dropdownColor: const Color(0xFF10263D),
+          dropdownColor: const Color(0xFF0B1B2D),
           style: const TextStyle(color: Colors.white, fontSize: 13),
           decoration: InputDecoration(
             filled: true,
-            fillColor: const Color(0xFF0B2035),
+            fillColor: const Color(0xFF0D1D30),
             contentPadding:
                 const EdgeInsets.symmetric(horizontal: 12, vertical: 10),
             border: OutlineInputBorder(
@@ -1500,9 +1543,9 @@ dates, addresses, or contact details. Use clear placeholders such as
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      backgroundColor: const Color(0xFF030D1B),
+      backgroundColor: const Color(0xFF020A14),
       appBar: AppBar(
-        backgroundColor: const Color(0xFF071426),
+        backgroundColor: const Color(0xFF06101E),
         foregroundColor: Colors.white,
         title: const Text('Letters & Emails'),
       ),
@@ -1584,7 +1627,7 @@ dates, addresses, or contact details. Use clear placeholders such as
                   'Enter purpose, names, dates and other details...',
               hintStyle: const TextStyle(color: Color(0xFF9AACC1)),
               filled: true,
-              fillColor: const Color(0xFF0B2035),
+              fillColor: const Color(0xFF0D1D30),
               border: OutlineInputBorder(
                 borderRadius: BorderRadius.circular(14),
                 borderSide: BorderSide(color: cyan.withOpacity(0.35)),
@@ -1639,7 +1682,7 @@ dates, addresses, or contact details. Use clear placeholders such as
               ),
               decoration: InputDecoration(
                 filled: true,
-                fillColor: const Color(0xFF0B2035),
+                fillColor: const Color(0xFF0D1D30),
                 border: OutlineInputBorder(
                   borderRadius: BorderRadius.circular(14),
                   borderSide: BorderSide(color: cyan.withOpacity(0.35)),
@@ -1717,7 +1760,7 @@ class _FeatureAssistantScreenState extends State<FeatureAssistantScreen> {
   String selectedTone = 'Friendly';
   String selectedLength = 'Medium';
   bool isGenerating = false;
-  final Color cyan = const Color(0xFF20D9E8);
+  final Color cyan = const Color(0xFF25B8FF);
 
   @override
   void initState() {
@@ -1735,7 +1778,7 @@ class _FeatureAssistantScreenState extends State<FeatureAssistantScreen> {
   void showNotice(String message) {
     ScaffoldMessenger.of(context).showSnackBar(
       SnackBar(
-        content: Text(message, style: const TextStyle(color: Color(0xFF142B42), fontWeight: FontWeight.w600)),
+        content: Text(message, style: const TextStyle(color: Color(0xFF10243B), fontWeight: FontWeight.w600)),
         backgroundColor: Colors.white,
       ),
     );
@@ -1755,11 +1798,11 @@ class _FeatureAssistantScreenState extends State<FeatureAssistantScreen> {
         DropdownButtonFormField<String>(
           value: value,
           isExpanded: true,
-          dropdownColor: const Color(0xFF10263D),
+          dropdownColor: const Color(0xFF0B1B2D),
           style: const TextStyle(color: Colors.white, fontSize: 13),
           decoration: InputDecoration(
             filled: true,
-            fillColor: const Color(0xFF0B2035),
+            fillColor: const Color(0xFF0D1D30),
             contentPadding: const EdgeInsets.symmetric(horizontal: 12, vertical: 10),
             border: OutlineInputBorder(borderRadius: BorderRadius.circular(12), borderSide: BorderSide(color: cyan.withOpacity(0.35))),
             enabledBorder: OutlineInputBorder(borderRadius: BorderRadius.circular(12), borderSide: BorderSide(color: cyan.withOpacity(0.35))),
@@ -1834,8 +1877,8 @@ Return only the result, without explaining these instructions.
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      backgroundColor: const Color(0xFF030D1B),
-      appBar: AppBar(backgroundColor: const Color(0xFF071426), foregroundColor: Colors.white, title: Text(widget.title)),
+      backgroundColor: const Color(0xFF020A14),
+      appBar: AppBar(backgroundColor: const Color(0xFF06101E), foregroundColor: Colors.white, title: Text(widget.title)),
       body: ListView(
         padding: const EdgeInsets.all(16),
         children: [
@@ -1901,7 +1944,7 @@ Return only the result, without explaining these instructions.
               hintText: widget.detailsHint,
               hintStyle: const TextStyle(color: Color(0xFF9AACC1)),
               filled: true,
-              fillColor: const Color(0xFF0B2035),
+              fillColor: const Color(0xFF0D1D30),
               border: OutlineInputBorder(borderRadius: BorderRadius.circular(14), borderSide: BorderSide(color: cyan.withOpacity(0.35))),
               enabledBorder: OutlineInputBorder(borderRadius: BorderRadius.circular(14), borderSide: BorderSide(color: cyan.withOpacity(0.35))),
             ),
@@ -1927,7 +1970,7 @@ Return only the result, without explaining these instructions.
               style: const TextStyle(color: Colors.white, fontSize: 14, height: 1.5),
               decoration: InputDecoration(
                 filled: true,
-                fillColor: const Color(0xFF0B2035),
+                fillColor: const Color(0xFF0D1D30),
                 border: OutlineInputBorder(borderRadius: BorderRadius.circular(14), borderSide: BorderSide(color: cyan.withOpacity(0.35))),
                 enabledBorder: OutlineInputBorder(borderRadius: BorderRadius.circular(14), borderSide: BorderSide(color: cyan.withOpacity(0.35))),
               ),
@@ -1991,35 +2034,41 @@ class BujjiBackgroundPainter extends CustomPainter {
       points.add(Offset(x, y));
     }
 
-    final linePaint = Paint()
-      ..color = const Color(0xFF00CFE8).withOpacity(0.17)
-      ..strokeWidth = 0.7;
+    final blueLinePaint = Paint()
+      ..color = const Color(0xFF25B8FF).withOpacity(0.22)
+      ..strokeWidth = 0.85;
+
+    final goldLinePaint = Paint()
+      ..color = const Color(0xFFFFC857).withOpacity(0.24)
+      ..strokeWidth = 0.8;
 
     for (int i = 0; i < points.length; i++) {
       for (int j = i + 1; j < points.length; j++) {
-        final distance =
-            (points[i] - points[j]).distance;
-
-        if (distance < 125) {
+        final distance = (points[i] - points[j]).distance;
+        if (distance < 145) {
           canvas.drawLine(
             points[i],
             points[j],
-            linePaint,
+            ((i + j) % 5 == 0) ? goldLinePaint : blueLinePaint,
           );
         }
       }
     }
 
-    final dotPaint = Paint()
-      ..color = const Color(0xFF20D9E8).withOpacity(0.55)
-      ..style = PaintingStyle.fill;
+    final blueGlow = Paint()
+      ..color = const Color(0xFF25B8FF).withOpacity(0.13)
+      ..maskFilter = const MaskFilter.blur(BlurStyle.normal, 5);
+    final goldGlow = Paint()
+      ..color = const Color(0xFFFFC857).withOpacity(0.15)
+      ..maskFilter = const MaskFilter.blur(BlurStyle.normal, 5);
+    final blueDot = Paint()..color = const Color(0xFF25B8FF);
+    final goldDot = Paint()..color = const Color(0xFFFFC857);
 
-    for (final point in points) {
-      canvas.drawCircle(
-        point,
-        1.4,
-        dotPaint,
-      );
+    for (int i = 0; i < points.length; i++) {
+      final isGold = i % 5 == 0;
+      final point = points[i];
+      canvas.drawCircle(point, 4.2, isGold ? goldGlow : blueGlow);
+      canvas.drawCircle(point, 1.55, isGold ? goldDot : blueDot);
     }
   }
 
