@@ -13,9 +13,9 @@ class FeedbackSuggestionsScreen extends StatefulWidget {
 
 class _FeedbackSuggestionsScreenState
     extends State<FeedbackSuggestionsScreen> {
-  static const Color background = Color(0xFF030D1B);
-  static const Color panel = Color(0xFF10243D);
-  static const Color cyan = Color(0xFF20D9E8);
+  static const Color background = Color(0xFF020A14);
+  static const Color panel = Color(0xFF0B1B2D);
+  static const Color cyan = Color(0xFF25B8FF);
   static const Color muted = Color(0xFF9AACC1);
 
   final TextEditingController messageController = TextEditingController();
@@ -39,12 +39,12 @@ class _FeedbackSuggestionsScreenState
             fontWeight: FontWeight.w600,
           ),
         ),
-        backgroundColor: const Color(0xFF10243D),
+        backgroundColor: const Color(0xFF0B1B2D),
         behavior: SnackBarBehavior.floating,
         elevation: 8,
         shape: RoundedRectangleBorder(
           borderRadius: BorderRadius.circular(14),
-          side: const BorderSide(color: Color(0xFF20D9E8), width: 0.8),
+          side: const BorderSide(color: Color(0xFF25B8FF), width: 0.8),
         ),
       ),
     );
@@ -89,7 +89,7 @@ class _FeedbackSuggestionsScreenState
     return Scaffold(
       backgroundColor: background,
       appBar: AppBar(
-        backgroundColor: const Color(0xFF071426),
+        backgroundColor: const Color(0xFF06101E),
         foregroundColor: Colors.white,
         title: const Text('Feedback & Suggestions'),
       ),
@@ -201,7 +201,7 @@ class _FeedbackSuggestionsScreenState
           Container(
             padding: const EdgeInsets.all(13),
             decoration: BoxDecoration(
-              color: const Color(0xFF0B2035),
+              color: const Color(0xFF0D1D30),
               borderRadius: BorderRadius.circular(12),
             ),
             child: const Text(
@@ -219,7 +219,7 @@ class _FeedbackSuggestionsScreenState
       hintText: hint,
       hintStyle: const TextStyle(color: muted, fontSize: 13),
       filled: true,
-      fillColor: const Color(0xFF0B2035),
+      fillColor: const Color(0xFF0D1D30),
       contentPadding: const EdgeInsets.symmetric(horizontal: 14, vertical: 14),
       border: OutlineInputBorder(
         borderRadius: BorderRadius.circular(13),
