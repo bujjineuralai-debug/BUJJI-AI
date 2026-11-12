@@ -3,9 +3,9 @@ import 'package:flutter/material.dart';
 class PrivacySecurityScreen extends StatelessWidget {
   const PrivacySecurityScreen({super.key});
 
-  static const Color background = Color(0xFF030D1B);
-  static const Color panel = Color(0xFF10243D);
-  static const Color cyan = Color(0xFF20D9E8);
+  static const Color background = Color(0xFF020A14);
+  static const Color panel = Color(0xFF0B1B2D);
+  static const Color cyan = Color(0xFF25B8FF);
   static const Color muted = Color(0xFF9AACC1);
 
   @override
@@ -13,7 +13,7 @@ class PrivacySecurityScreen extends StatelessWidget {
     return Scaffold(
       backgroundColor: background,
       appBar: AppBar(
-        backgroundColor: const Color(0xFF071426),
+        backgroundColor: const Color(0xFF06101E),
         foregroundColor: Colors.white,
         title: const Text('Privacy & Security'),
         elevation: 0,
@@ -35,7 +35,7 @@ class PrivacySecurityScreen extends StatelessWidget {
                 gradient: const LinearGradient(
                   begin: Alignment.topLeft,
                   end: Alignment.bottomRight,
-                  colors: [Color(0xFF123A59), Color(0xFF0B2035), Color(0xFF142B42)],
+                  colors: [Color(0xFF12304A), Color(0xFF0D1D30), Color(0xFF10243B)],
                 ),
                 borderRadius: BorderRadius.circular(20),
                 border: Border.all(color: cyan.withOpacity(0.45)),
