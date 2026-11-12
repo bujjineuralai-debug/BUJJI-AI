@@ -20,9 +20,9 @@ class ToolsHome extends StatelessWidget {
     required this.onOpenVoiceStudio,
   });
 
-  static const Color background = Color(0xFF071426);
-  static const Color card = Color(0xFF10243D);
-  static const Color cyan = Color(0xFF00D9FF);
+  static const Color background = Color(0xFF06101E);
+  static const Color card = Color(0xFF0B1B2D);
+  static const Color cyan = Color(0xFF25B8FF);
   static const Color gold = Color(0xFFFFC857);
 
   Widget _toolCard({
