@@ -4,9 +4,9 @@ import 'package:flutter/material.dart';
 import 'package:google_sign_in/google_sign_in.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 
-const _bg = Color(0xFF030D1B);
-const _panel = Color(0xFF10243D);
-const _cyan = Color(0xFF20D9E8);
+const _bg = Color(0xFF020A14);
+const _panel = Color(0xFF0B1B2D);
+const _cyan = Color(0xFF25B8FF);
 const _muted = Color(0xFF9AACC1);
 const _googleServerClientId =
     '924828656704-kk44oad5caing6nco22k8cu2v3qeg0ep.apps.googleusercontent.com';
@@ -118,7 +118,7 @@ class _MyAccountScreenState extends State<MyAccountScreen> {
 
   void _notice(String text) {
     if (mounted) ScaffoldMessenger.of(context).showSnackBar(
-      SnackBar(content: Text(text), backgroundColor: const Color(0xFF142B42)),
+      SnackBar(content: Text(text), backgroundColor: const Color(0xFF10243B)),
     );
   }
 
@@ -241,7 +241,7 @@ class _MyAccountScreenState extends State<MyAccountScreen> {
     final user = _user;
     return Scaffold(
       backgroundColor: _bg,
-      appBar: AppBar(backgroundColor: const Color(0xFF071426), foregroundColor: Colors.white, title: const Text('My Account')),
+      appBar: AppBar(backgroundColor: const Color(0xFF06101E), foregroundColor: Colors.white, title: const Text('My Account')),
       body: _loading
         ? const Center(child: CircularProgressIndicator(color: _cyan))
         : ListView(
