@@ -25,9 +25,9 @@ class _SmartCalculatorState extends State<SmartCalculator> {
 
   final List<String> _history = [];
 
-  final Color _background = const Color(0xFF071426);
-  final Color _card = const Color(0xFF10243D);
-  final Color _cyan = const Color(0xFF00D9FF);
+  final Color _background = const Color(0xFF06101E);
+  final Color _card = const Color(0xFF0B1B2D);
+  final Color _cyan = const Color(0xFF25B8FF);
   final Color _gold = const Color(0xFFFFC857);
 
   @override
