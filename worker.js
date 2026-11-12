@@ -110,12 +110,13 @@ async function runPrimaryModel(env, messages) {
       },
       body: JSON.stringify({
         systemInstruction: {
-          parts: [{ text: systemText }],
+          parts: [{ text: systemText + "\n\nCONVERSATIONAL QUALITY: Speak like a thoughtful, natural human conversation partner. Understand the user's intent and context before answering. Avoid canned, repetitive, robotic or overly formal wording. Use natural everyday language, appropriate warmth and varied sentence structure. Explain clearly when needed, but keep simple answers concise. Do not invent facts; say when unsure and ask one focused question if essential information is missing." }],
         },
         contents,
+        tools: [{ google_search: {} }],
         generationConfig: {
           maxOutputTokens: 1024,
-          temperature: 0.6,
+          temperature: 0.7,
         },
       }),
     }
@@ -137,6 +138,29 @@ async function runPrimaryModel(env, messages) {
 
   if (!reply) {
     throw new Error("Gemini API returned an empty response.");
+  }
+
+  const groundingChunks = Array.isArray(data.candidates?.[0]?.groundingMetadata?.groundingChunks)
+    ? data.candidates[0].groundingMetadata.groundingChunks
+    : [];
+  const sources = groundingChunks
+    .filter((chunk) => chunk?.web?.uri)
+    .map((chunk) => ({
+      title: typeof chunk.web.title === "string" && chunk.web.title.trim()
+        ? chunk.web.title.trim()
+        : chunk.web.uri,
+      uri: chunk.web.uri,
+    }))
+    .filter((source, index, all) =>
+      all.findIndex((item) => item.uri === source.uri) === index
+    )
+    .slice(0, 5);
+
+  if (sources.length > 0) {
+    const sourceText = sources
+      .map((source, index) => `${index + 1}. ${source.title} — ${source.uri}`)
+      .join("\\n");
+    return `${reply}\\n\\nమూలాలు (Google Search):\\n${sourceText}`;
   }
 
   return reply;
