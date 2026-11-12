@@ -933,13 +933,57 @@ class _BujjiHomeScreenState extends State<BujjiHomeScreen> {
                 : cyan.withOpacity(0.35),
           ),
         ),
-        child: Text(
-          message.content,
-          style: const TextStyle(
-            color: Colors.white,
-            fontSize: 14,
-            height: 1.5,
-          ),
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            Text(
+              message.content,
+              style: const TextStyle(
+                color: Colors.white,
+                fontSize: 14,
+                height: 1.5,
+              ),
+            ),
+            const SizedBox(height: 5),
+            Align(
+              alignment: Alignment.centerRight,
+              child: InkWell(
+                onTap: () async {
+                  await Clipboard.setData(
+                    ClipboardData(text: message.content),
+                  );
+                  if (mounted) showMessage('Copied to clipboard.');
+                },
+                borderRadius: BorderRadius.circular(8),
+                child: Padding(
+                  padding: const EdgeInsets.symmetric(
+                    horizontal: 5,
+                    vertical: 3,
+                  ),
+                  child: Row(
+                    mainAxisSize: MainAxisSize.min,
+                    children: [
+                      Icon(
+                        Icons.copy_rounded,
+                        size: 14,
+                        color: isUser ? gold : cyan,
+                      ),
+                      const SizedBox(width: 5),
+                      Text(
+                        'Copy',
+                        style: TextStyle(
+                          color: isUser ? gold : cyan,
+                          fontSize: 11,
+                          fontWeight: FontWeight.w600,
+                        ),
+                      ),
+                    ],
+                  ),
+                ),
+              ),
+            ),
+          ],
         ),
       ),
     );
