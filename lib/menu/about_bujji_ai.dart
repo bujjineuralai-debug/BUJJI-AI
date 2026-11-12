@@ -3,9 +3,9 @@ import 'package:flutter/material.dart';
 class AboutBujjiAIScreen extends StatelessWidget {
   const AboutBujjiAIScreen({super.key});
 
-  static const Color background = Color(0xFF030D1B);
-  static const Color panel = Color(0xFF0B2035);
-  static const Color cyan = Color(0xFF20D9E8);
+  static const Color background = Color(0xFF020A14);
+  static const Color panel = Color(0xFF0D1D30);
+  static const Color cyan = Color(0xFF25B8FF);
   static const Color gold = Color(0xFFFFC857);
   static const Color muted = Color(0xFF9AACC1);
 
@@ -14,7 +14,7 @@ class AboutBujjiAIScreen extends StatelessWidget {
     return Scaffold(
       backgroundColor: background,
       appBar: AppBar(
-        backgroundColor: const Color(0xFF071426),
+        backgroundColor: const Color(0xFF06101E),
         foregroundColor: Colors.white,
         title: const Text('About BUJJI AI'),
         elevation: 0,
@@ -114,7 +114,7 @@ class AboutBujjiAIScreen extends StatelessWidget {
               padding: const EdgeInsets.symmetric(horizontal: 18, vertical: 22),
               decoration: BoxDecoration(
                 gradient: const LinearGradient(
-                  colors: [Color(0xFF123A59), Color(0xFF0B2035), Color(0xFF12304A)],
+                  colors: [Color(0xFF12304A), Color(0xFF0D1D30), Color(0xFF12304A)],
                 ),
                 borderRadius: BorderRadius.circular(20),
                 border: Border.all(color: cyan.withOpacity(0.45)),
@@ -149,7 +149,7 @@ class AboutBujjiAIScreen extends StatelessWidget {
         gradient: const LinearGradient(
           begin: Alignment.topLeft,
           end: Alignment.bottomRight,
-          colors: [Color(0xFF123A59), Color(0xFF0B2035), Color(0xFF142B42)],
+          colors: [Color(0xFF12304A), Color(0xFF0D1D30), Color(0xFF10243B)],
         ),
         borderRadius: BorderRadius.circular(20),
         border: Border.all(color: cyan.withOpacity(0.55)),
@@ -233,12 +233,12 @@ class _FeatureChip extends StatelessWidget {
       decoration: BoxDecoration(
         color: const Color(0xFF12334D),
         borderRadius: BorderRadius.circular(12),
-        border: Border.all(color: const Color(0xFF20D9E8).withOpacity(0.25)),
+        border: Border.all(color: const Color(0xFF25B8FF).withOpacity(0.25)),
       ),
       child: Row(
         mainAxisSize: MainAxisSize.min,
         children: [
-          Icon(icon, color: const Color(0xFF20D9E8), size: 15),
+          Icon(icon, color: const Color(0xFF25B8FF), size: 15),
           const SizedBox(width: 6),
           Text(label, style: const TextStyle(color: Colors.white, fontSize: 11, fontWeight: FontWeight.w600)),
         ],
@@ -258,7 +258,7 @@ class _Bullet extends StatelessWidget {
       child: Row(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          const Icon(Icons.check_circle_rounded, color: Color(0xFF20D9E8), size: 17),
+          const Icon(Icons.check_circle_rounded, color: Color(0xFF25B8FF), size: 17),
           const SizedBox(width: 9),
           Expanded(child: Text(text, style: const TextStyle(color: Colors.white, fontSize: 13))),
         ],
