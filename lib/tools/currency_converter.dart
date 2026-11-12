@@ -15,9 +15,9 @@ class _CurrencyConverterState extends State<CurrencyConverter> {
   static const _endpoint = 'https://open.er-api.com/v6/latest/USD';
   static const _cacheKey = 'bujji_currency_rates_v1';
   static const _timeKey = 'bujji_currency_rates_time_v1';
-  static const _bg = Color(0xFF071426);
-  static const _card = Color(0xFF10243D);
-  static const _cyan = Color(0xFF00D9FF);
+  static const _bg = Color(0xFF06101E);
+  static const _card = Color(0xFF0B1B2D);
+  static const _cyan = Color(0xFF25B8FF);
   static const _gold = Color(0xFFFFC857);
 
   static const Map<String, String> currencies = {
@@ -222,7 +222,7 @@ class _CurrencyConverterState extends State<CurrencyConverter> {
               padding: const EdgeInsets.all(18),
               decoration: BoxDecoration(
                 gradient: const LinearGradient(
-                  colors: [Color(0xFF153B58), Color(0xFF10243D)],
+                  colors: [Color(0xFF153B58), Color(0xFF0B1B2D)],
                   begin: Alignment.topLeft,
                   end: Alignment.bottomRight,
                 ),
