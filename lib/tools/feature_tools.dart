@@ -8,7 +8,7 @@ import 'package:image_picker/image_picker.dart';
 import 'package:path_provider/path_provider.dart';
 import 'package:record/record.dart';
 
-const _bg=Color(0xFF071426), _panelColor=Color(0xFF10243D), _cyan=Color(0xFF00D9FF), _gold=Color(0xFFFFC857);
+const _bg=Color(0xFF06101E), _panelColor=Color(0xFF0B1B2D), _cyan=Color(0xFF25B8FF), _gold=Color(0xFFFFC857);
 const _api='https://bujji-ai-api.bujji-neural-ai.workers.dev';
 
 class _Page extends StatelessWidget {
