@@ -80,7 +80,99 @@ IDENTITY AND OWNERSHIP:
 - Always answer identity questions in the language of the latest user message, using that language's real vocabulary and grammar, not merely its script.
 `;
 
-const MODEL = "@cf/meta/llama-3.2-3b-instruct";
+const MODEL = "gemini-3.8-flash";
+const FALLBACK_MODEL = "@cf/meta/llama-3.2-3b-instruct";
+
+async function runPrimaryModel(env, messages) {
+  if (typeof env.GEMINI_API_KEY !== "string" || !env.GEMINI_API_KEY.trim()) {
+    throw new Error("GEMINI_API_KEY secret is missing.");
+  }
+
+  const systemText = messages
+    .filter((item) => item.role === "system")
+    .map((item) => item.content)
+    .join("\n\n");
+
+  const contents = messages
+    .filter((item) => item.role !== "system")
+    .map((item) => ({
+      role: item.role === "assistant" ? "model" : "user",
+      parts: [{ text: item.content }],
+    }));
+
+  const response = await fetch(
+    `https://generativelanguage.googleapis.com/v1beta/models/${MODEL}:generateContent`,
+    {
+      method: "POST",
+      headers: {
+        "Content-Type": "application/json",
+        "x-goog-api-key": env.GEMINI_API_KEY,
+      },
+      body: JSON.stringify({
+        systemInstruction: {
+          parts: [{ text: systemText }],
+        },
+        contents,
+        generationConfig: {
+          maxOutputTokens: 1024,
+          temperature: 0.6,
+        },
+      }),
+    }
+  );
+
+  if (!response.ok) {
+    const errorText = await response.text();
+    console.error("Gemini API request failed:", response.status, errorText.slice(0, 500));
+    throw new Error(`Gemini API request failed with status ${response.status}.`);
+  }
+
+  const data = await response.json();
+  const reply = Array.isArray(data.candidates?.[0]?.content?.parts)
+    ? data.candidates[0].content.parts
+        .map((part) => typeof part.text === "string" ? part.text : "")
+        .join("")
+        .trim()
+    : "";
+
+  if (!reply) {
+    throw new Error("Gemini API returned an empty response.");
+  }
+
+  return reply;
+}
+
+async function runChatModel(env, messages) {
+  try {
+    const reply = await runPrimaryModel(env, messages);
+    console.log("BUJJI AI provider: Gemini");
+    return reply;
+  } catch (error) {
+    const detail = error instanceof Error ? error.message : String(error);
+    console.warn("Gemini unavailable; using Cloudflare Llama fallback:", detail);
+
+    if (!env || !env.AI || typeof env.AI.run !== "function") {
+      throw new Error("Gemini failed and Cloudflare AI fallback is unavailable.");
+    }
+
+    const result = await env.AI.run(FALLBACK_MODEL, {
+      messages,
+      max_tokens: 1024,
+      temperature: 0.6,
+    });
+
+    const reply = result && typeof result.response === "string"
+      ? result.response.trim()
+      : "";
+
+    if (!reply) {
+      throw new Error("Both Gemini and Cloudflare Llama returned an empty response.");
+    }
+
+    console.log("BUJJI AI provider: Cloudflare Llama fallback");
+    return reply;
+  }
+}
 const MAX_MESSAGE_LENGTH = 4000;
 const MAX_HISTORY_ITEMS = 12;
 const MAX_HISTORY_MESSAGE_LENGTH = 4000;
@@ -596,15 +688,7 @@ export default {
       console.log("Detected language:", language);
       if (dialect) console.log("Detected Telugu dialect hint:", dialect);
 
-      const result = await env.AI.run(MODEL, {
-        messages,
-        max_tokens: 1024,
-        temperature: 0.6,
-      });
-
-      const reply = result && typeof result.response === "string"
-        ? result.response.trim()
-        : "";
+      const reply = await runChatModel(env, messages);
 
       if (!reply) {
         console.error("BUJJI AI returned an empty response:", requestId);
