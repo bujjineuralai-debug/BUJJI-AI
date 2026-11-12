@@ -100,7 +100,7 @@ async function runPrimaryModel(env, messages) {
       parts: [{ text: item.content }],
     }));
 
-  const response = await fetch(
+  const requestGemini = async (enableGoogleSearch) => fetch(
     `https://generativelanguage.googleapis.com/v1beta/models/${MODEL}:generateContent`,
     {
       method: "POST",
@@ -113,7 +113,7 @@ async function runPrimaryModel(env, messages) {
           parts: [{ text: systemText + "\n\nCONVERSATIONAL QUALITY: Speak like a thoughtful, natural human conversation partner. Understand the user's intent and context before answering. Avoid canned, repetitive, robotic or overly formal wording. Use natural everyday language, appropriate warmth and varied sentence structure. Explain clearly when needed, but keep simple answers concise. Do not invent facts; say when unsure and ask one focused question if essential information is missing." }],
         },
         contents,
-        tools: [{ google_search: {} }],
+        ...(enableGoogleSearch ? { tools: [{ google_search: {} }] } : {}),
         generationConfig: {
           maxOutputTokens: 1024,
           temperature: 0.7,
@@ -122,9 +122,28 @@ async function runPrimaryModel(env, messages) {
     }
   );
 
+  let response = await requestGemini(true);
+
   if (!response.ok) {
     const errorText = await response.text();
-    console.error("Gemini API request failed:", response.status, errorText.slice(0, 500));
+    const searchToolUnavailable =
+      (response.status === 400 || response.status === 403) &&
+      /google.?search|grounding|tool/i.test(errorText);
+
+    if (searchToolUnavailable) {
+      console.warn(
+        "Gemini Google Search grounding is unavailable for this API project; retrying the same request without search grounding."
+      );
+      response = await requestGemini(false);
+    } else {
+      console.error("Gemini API request failed:", response.status, errorText.slice(0, 500));
+      throw new Error(`Gemini API request failed with status ${response.status}.`);
+    }
+  }
+
+  if (!response.ok) {
+    const errorText = await response.text();
+    console.error("Gemini API retry failed:", response.status, errorText.slice(0, 500));
     throw new Error(`Gemini API request failed with status ${response.status}.`);
   }
 
