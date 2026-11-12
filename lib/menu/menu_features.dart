@@ -8,9 +8,9 @@ import 'dart:io';
 
 export 'my_account_screen.dart';
 
-const _bg = Color(0xFF030D1B);
-const _panel = Color(0xFF10243D);
-const _cyan = Color(0xFF20D9E8);
+const _bg = Color(0xFF020A14);
+const _panel = Color(0xFF0B1B2D);
+const _cyan = Color(0xFF25B8FF);
 const _muted = Color(0xFF9AACC1);
 
 class _MenuPage extends StatelessWidget {
@@ -21,7 +21,7 @@ class _MenuPage extends StatelessWidget {
   @override
   Widget build(BuildContext context) => Scaffold(
     backgroundColor: _bg,
-    appBar: AppBar(backgroundColor: const Color(0xFF071426), foregroundColor: Colors.white, title: Text(title)),
+    appBar: AppBar(backgroundColor: const Color(0xFF06101E), foregroundColor: Colors.white, title: Text(title)),
     body: SafeArea(child: child),
   );
 }
