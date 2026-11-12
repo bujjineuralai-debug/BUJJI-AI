@@ -4,9 +4,9 @@ import 'feedback_suggestions.dart';
 class HelpSupportScreen extends StatelessWidget {
   const HelpSupportScreen({super.key});
 
-  static const Color background = Color(0xFF030D1B);
-  static const Color panel = Color(0xFF10243D);
-  static const Color cyan = Color(0xFF20D9E8);
+  static const Color background = Color(0xFF020A14);
+  static const Color panel = Color(0xFF0B1B2D);
+  static const Color cyan = Color(0xFF25B8FF);
   static const Color muted = Color(0xFF9AACC1);
 
   static const List<_HelpItem> faqs = [
@@ -42,7 +42,7 @@ class HelpSupportScreen extends StatelessWidget {
     return Scaffold(
       backgroundColor: background,
       appBar: AppBar(
-        backgroundColor: const Color(0xFF071426),
+        backgroundColor: const Color(0xFF06101E),
         foregroundColor: Colors.white,
         title: const Text('Help & Support'),
       ),
@@ -131,7 +131,7 @@ class HelpSupportScreen extends StatelessWidget {
           Container(
             padding: const EdgeInsets.all(16),
             decoration: BoxDecoration(
-              color: const Color(0xFF0B2035),
+              color: const Color(0xFF0D1D30),
               borderRadius: BorderRadius.circular(14),
             ),
             child: const Column(
