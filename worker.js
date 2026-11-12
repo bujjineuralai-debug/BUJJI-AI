@@ -177,7 +177,7 @@ async function runPrimaryModel(env, messages) {
       parts: [{ text: item.content }],
     }));
 
-  const requestGemini = async (enableGoogleSearch) => fetch(
+  const requestGemini = async (requestContents, enableGoogleSearch) => fetch(
     `https://generativelanguage.googleapis.com/v1beta/models/${MODEL}:generateContent`,
     {
       method: "POST",
@@ -187,9 +187,9 @@ async function runPrimaryModel(env, messages) {
       },
       body: JSON.stringify({
         systemInstruction: {
-          parts: [{ text: systemText + "\n\nCONVERSATIONAL QUALITY: Speak like a thoughtful, natural human conversation partner. Understand the user's intent and context before answering. Avoid canned, repetitive, robotic or overly formal wording. Use natural everyday language, appropriate warmth and varied sentence structure. Keep simple answers concise, but when the user asks for a full, detailed, step-by-step or multi-part explanation, answer every requested part with enough useful detail and examples. Do not stop after a short summary or omit requested sections. Organize long answers with clear headings and finish the explanation naturally. Do not invent facts; say when unsure and ask one focused question if essential information is missing." }],
+          parts: [{ text: systemText + "\n\nCONVERSATIONAL QUALITY: Speak like a thoughtful, natural human conversation partner. Understand the user's intent and context before answering. Avoid canned, repetitive, robotic or overly formal wording. Use natural everyday language, appropriate warmth and varied sentence structure. Keep simple answers concise, but when the user asks for a full, detailed, step-by-step or multi-part explanation, answer every requested part with enough useful detail and examples. Do not stop after a short summary or omit requested sections. Organize long answers with clear headings and finish the explanation naturally. Do not invent facts; say when unsure and ask one focused question if essential information is missing.\n\nLONG ANSWER CONTINUATION: If the previous model response ended because the output token limit was reached, continue exactly from the last unfinished point. Do not repeat the introduction, headings, paragraphs, examples, or facts already provided. Complete all remaining requested sections and end with a clear conclusion." }],
         },
-        contents,
+        contents: requestContents,
         ...(enableGoogleSearch ? { tools: [{ google_search: {} }] } : {}),
         generationConfig: {
           maxOutputTokens: 8192,
@@ -199,7 +199,7 @@ async function runPrimaryModel(env, messages) {
     }
   );
 
-  let response = await requestGemini(true);
+  let response = await requestGemini(contents, true);
 
   if (!response.ok) {
     const errorText = await response.text();
@@ -211,7 +211,7 @@ async function runPrimaryModel(env, messages) {
       console.warn(
         "Gemini Google Search grounding is unavailable for this API project; retrying the same request without search grounding."
       );
-      response = await requestGemini(false);
+      response = await requestGemini(contents, false);
     } else {
       console.error("Gemini API request failed:", response.status, errorText.slice(0, 500));
       throw new Error(`Gemini API request failed with status ${response.status}.`);
@@ -224,21 +224,79 @@ async function runPrimaryModel(env, messages) {
     throw new Error(`Gemini API request failed with status ${response.status}.`);
   }
 
-  const data = await response.json();
-  const reply = Array.isArray(data.candidates?.[0]?.content?.parts)
-    ? data.candidates[0].content.parts
-        .map((part) => typeof part.text === "string" ? part.text : "")
-        .join("")
-        .trim()
-    : "";
+  let data = await response.json();
+  let reply = "";
+  const groundingChunks = [];
+  const MAX_CONTINUATIONS = 2;
+  let continuationCount = 0;
 
+  while (true) {
+    const candidate = data.candidates?.[0];
+    const parts = Array.isArray(candidate?.content?.parts)
+      ? candidate.content.parts
+      : [];
+    const segment = parts
+      .map((part) => typeof part.text === "string" ? part.text : "")
+      .join("");
+
+    if (segment) reply += segment;
+
+    const candidateGrounding = candidate?.groundingMetadata?.groundingChunks;
+    if (Array.isArray(candidateGrounding)) {
+      groundingChunks.push(...candidateGrounding);
+    }
+
+    const finishReason = candidate?.finishReason ?? "UNKNOWN";
+    console.log("Gemini response segment:", {
+      finishReason,
+      segmentLength: segment.length,
+      continuationCount,
+    });
+
+    // Continue only when Gemini explicitly reports that the output token limit
+    // stopped generation. Do not continue for normal STOP or safety finishes.
+    if (finishReason !== "MAX_TOKENS" || continuationCount >= MAX_CONTINUATIONS) {
+      if (finishReason === "MAX_TOKENS") {
+        console.warn("Gemini answer reached the configured continuation limit.");
+      }
+      break;
+    }
+
+    if (!candidate?.content || parts.length === 0) {
+      console.warn("Gemini reported MAX_TOKENS but returned no continuation content.");
+      break;
+    }
+
+    continuationCount += 1;
+    const continuationContents = [
+      ...contents,
+      candidate.content,
+      {
+        role: "user",
+        parts: [{
+          text: "Continue the answer from the exact point where your previous response stopped. Do not repeat or summarize anything already written. Finish every remaining part of the user's original request and provide a proper conclusion.",
+        }],
+      },
+    ];
+
+    const continuationResponse = await requestGemini(continuationContents, false);
+    if (!continuationResponse.ok) {
+      const continuationError = await continuationResponse.text();
+      console.error(
+        "Gemini continuation failed:",
+        continuationResponse.status,
+        continuationError.slice(0, 500)
+      );
+      break;
+    }
+    data = await continuationResponse.json();
+  }
+
+  reply = reply.trim();
   if (!reply) {
     throw new Error("Gemini API returned an empty response.");
   }
 
-  const groundingChunks = Array.isArray(data.candidates?.[0]?.groundingMetadata?.groundingChunks)
-    ? data.candidates[0].groundingMetadata.groundingChunks
-    : [];
   const sources = groundingChunks
     .filter((chunk) => chunk?.web?.uri)
     .map((chunk) => ({
@@ -259,6 +317,7 @@ async function runPrimaryModel(env, messages) {
     return `${reply}\n\nమూలాలు (Google Search):\n${sourceText}`;
   }
 
+  return reply;
   return reply;
 }
 
