@@ -559,6 +559,9 @@ class _BujjiHomeScreenState extends State<BujjiHomeScreen> {
       );
       final int statusCode = apiResponse.statusCode;
       final Map<String, dynamic> decoded = apiResponse.data;
+      final String? traceId = decoded['requestId'] is String
+          ? decoded['requestId'] as String
+          : null;
       if (traceId != null && traceId.isNotEmpty) {
         lastRequestId = traceId;
         debugPrint('BUJJI AI Trace ID: $traceId');
