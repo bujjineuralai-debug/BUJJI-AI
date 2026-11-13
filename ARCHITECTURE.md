@@ -61,6 +61,8 @@ The currency converter still has its own external exchange-rate endpoint and loc
 
 The Worker entrypoint remains `worker.js`, as configured in `wrangler.jsonc`. Provider behaviour and model selection were intentionally not redesigned as part of this architecture refactor.
 
+The chat route does not require the Cloudflare AI binding before invoking the Gemini primary provider. The fallback binding is checked only inside provider orchestration after the primary attempt fails. The vision route still requires the Cloudflare AI binding directly.
+
 ## Data ownership and persistence
 
 - Active chat messages are held in the chat screen's in-memory state. They are not yet persisted as a conversation history store.
