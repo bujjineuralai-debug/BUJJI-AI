@@ -3,7 +3,7 @@ import assert from "node:assert/strict";
 import { readFile } from "node:fs/promises";
 
 const source = await readFile(new URL("../worker.js", import.meta.url), "utf8");
-const { default: worker } = await import(
+const { default: worker, RateLimiter } = await import(
   `data:text/javascript;base64,${Buffer.from(source).toString("base64")}`
 );
 
@@ -155,7 +155,7 @@ test("Durable Object enforces an atomic fixed-window request limit", async () =>
       put: async (_key, value) => { state = value; },
     }),
   };
-  const limiter = new worker.RateLimiter({ storage });
+  const limiter = new RateLimiter({ storage });
   const call = () => limiter.fetch(new Request("https://rate-limit.internal/check", {
     method: "POST",
     headers: { "content-type": "application/json" },
