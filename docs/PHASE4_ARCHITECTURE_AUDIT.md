@@ -37,5 +37,7 @@ Worker operational audit events use Trace IDs and non-content metadata. Vision d
 - Run staging integration tests against a staging Firebase project and Cloudflare Worker.
 - Verify anonymous provider enablement and credential linking.
 - Automated Worker tests cover wrong-project, invalid-signature, expired and missing Firebase tokens; repeat these against the staging Firebase project.
+- A dedicated Telugu Language Intelligence module now supplies separate grammar, orthography, pronoun, honorific, Romanized Telugu and silent-proofreading guidance to the Worker system prompt. Automated Worker coverage checks that the module is present in the Gemini prompt and includes vowel signs, conjuncts, doubled consonants and respectful-address rules.
+- Runtime review with native Telugu speakers remains necessary; the prompt is guidance for the model, not a deterministic Telugu spell-checker or a guarantee of perfect orthography.
 - Test end-to-end Trace ID correlation and all supported languages.
 - Resolve the existing Gemini-primary Cloudflare AI binding dependency last, without removing the AI binding needed by Llama fallback and Vision.

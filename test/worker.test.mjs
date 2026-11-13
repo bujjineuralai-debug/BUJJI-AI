@@ -3,8 +3,19 @@ import assert from "node:assert/strict";
 import { readFile } from "node:fs/promises";
 
 const source = await readFile(new URL("../worker.js", import.meta.url), "utf8");
+const languageModuleSource = await readFile(
+  new URL("../telugu_language_intelligence.js", import.meta.url),
+  "utf8",
+);
+const { TELUGU_LANGUAGE_INTELLIGENCE_PROMPT } = await import(
+  `data:text/javascript;base64,${Buffer.from(languageModuleSource).toString("base64")}`
+);
+const executableSource = source.replace(
+  'import { TELUGU_LANGUAGE_INTELLIGENCE_PROMPT } from "./telugu_language_intelligence.js";',
+  `const TELUGU_LANGUAGE_INTELLIGENCE_PROMPT = ${JSON.stringify(TELUGU_LANGUAGE_INTELLIGENCE_PROMPT)};`,
+);
 const { default: worker, RateLimiter } = await import(
-  `data:text/javascript;base64,${Buffer.from(source).toString("base64")}`
+  `data:text/javascript;base64,${Buffer.from(executableSource).toString("base64")}`
 );
 
 const originalFetch = globalThis.fetch;
@@ -138,6 +149,13 @@ test("Gemini success returns a correlated request id", async () => {
   globalThis.fetch = async (_url, options) => {
     const payload = JSON.parse(options.body);
     assert.ok(payload.systemInstruction.parts[0].text.includes("Romanized Telugu"));
+    const systemPrompt = payload.systemInstruction.parts[0].text;
+    assert.ok(systemPrompt.includes("TELUGU SCRIPT AND LETTER INVENTORY"));
+    assert.ok(systemPrompt.includes("గుణింతాలు"));
+    assert.ok(systemPrompt.includes("వత్తులు"));
+    assert.ok(systemPrompt.includes("ఒత్తులు"));
+    assert.ok(systemPrompt.includes("క్ష as a conjunct consonant form"));
+    assert.ok(systemPrompt.includes("PRONOUNS, HONORIFICS AND ADDRESS"));
     return new Response(JSON.stringify({
       candidates: [{
         content: { parts: [{ text: "నమస్కారం! ఎలా సహాయం చేయాలి?" }] },
