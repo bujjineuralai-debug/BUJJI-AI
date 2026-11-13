@@ -89,6 +89,7 @@ class _VisionPageState extends State<_VisionPage> {
     setState(() {
       busy = true;
       answer = '';
+      lastRequestId = null;
     });
 
     HttpClient? client;
