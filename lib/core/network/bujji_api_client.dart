@@ -30,7 +30,10 @@ class BujjiApiResponse {
 
 /// The single HTTP boundary for BUJJI AI backend requests.
 class BujjiApiClient {
-  const BujjiApiClient();
+  final String _baseUrl;
+
+  const BujjiApiClient({String? baseUrl})
+      : _baseUrl = baseUrl ?? AppConfig.apiBaseUrl;
 
   Future<BujjiApiResponse> postJson(
     String path,
@@ -41,7 +44,7 @@ class BujjiApiClient {
     Duration bodyTimeout = const Duration(seconds: 30),
   }) async {
     final normalizedPath = path.startsWith('/') ? path : '/$path';
-    final uri = Uri.parse('${AppConfig.apiBaseUrl}$normalizedPath');
+    final uri = Uri.parse('$_baseUrl$normalizedPath');
     final client = HttpClient()..connectionTimeout = connectionTimeout;
 
     try {
