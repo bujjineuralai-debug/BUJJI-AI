@@ -364,11 +364,93 @@ const CORS_HEADERS = {
   "Cache-Control": "no-store",
 };
 
-function jsonResponse(data, status = 200) {
+function jsonResponse(data, status = 200, extraHeaders = {}) {
   return new Response(JSON.stringify(data), {
     status,
-    headers: CORS_HEADERS,
+    headers: { ...CORS_HEADERS, ...extraHeaders },
   });
+}
+
+async function checkRateLimit(env, request, route) {
+  const namespace = env?.RATE_LIMITER;
+  const required = env?.REQUIRE_RATE_LIMITING === "true";
+  if (!namespace) {
+    return required
+      ? { allowed: false, status: 503, error: "Rate limiting is not configured." }
+      : { allowed: true };
+  }
+
+  try {
+    const ip = request.headers.get("CF-Connecting-IP") || "unknown";
+    const id = namespace.idFromName(`${route}:${ip}`);
+    const stub = namespace.get(id);
+    const limit = route === "vision" ? 10 : 30;
+    const response = await stub.fetch("https://rate-limit.internal/check", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ limit, windowMs: 60_000 }),
+    });
+    if (!response.ok) throw new Error("Rate limiter returned a non-success status.");
+    const result = await response.json();
+    return result.allowed
+      ? { allowed: true }
+      : { allowed: false, status: 429, retryAfter: result.retryAfter || 60 };
+  } catch (error) {
+    console.error("BUJJI rate limiter unavailable:", route, error);
+    return { allowed: false, status: 503, error: "Request protection is temporarily unavailable." };
+  }
+}
+
+export class RateLimiter {
+  constructor(ctx) {
+    this.ctx = ctx;
+  }
+
+  async fetch(request) {
+    if (request.method !== "POST") {
+      return Response.json({ allowed: false }, { status: 405 });
+    }
+
+    let input;
+    try {
+      input = await request.json();
+    } catch {
+      return Response.json({ allowed: false }, { status: 400 });
+    }
+
+    const limit = Number(input?.limit);
+    const windowMs = Number(input?.windowMs);
+    if (!Number.isInteger(limit) || limit < 1 || limit > 1000 ||
+        !Number.isInteger(windowMs) || windowMs < 1000 || windowMs > 3_600_000) {
+      return Response.json({ allowed: false }, { status: 400 });
+    }
+
+    const now = Date.now();
+    const windowStart = Math.floor(now / windowMs) * windowMs;
+    let result = { allowed: true, retryAfter: 0 };
+
+    await this.ctx.storage.transaction(async (txn) => {
+      let state = await txn.get("rate_limit");
+      if (!state || state.windowStart !== windowStart) {
+        state = { windowStart, count: 0 };
+      }
+
+      if (state.count >= limit) {
+        result = {
+          allowed: false,
+          retryAfter: Math.max(1, Math.ceil((windowStart + windowMs - now) / 1000)),
+        };
+        return;
+      }
+
+      state.count += 1;
+      await txn.put("rate_limit", state);
+    });
+
+    return Response.json(result, {
+      headers: { "Cache-Control": "no-store" },
+    });
+  }
 }
 
 async function readJsonBody(request, maxBytes) {
@@ -686,14 +768,25 @@ export default {
         return jsonResponse({ success: false, error: "Method not allowed." }, 405);
       }
 
+      const requestId = crypto.randomUUID();
+      const rateLimit = await checkRateLimit(env, request, "vision");
+      if (!rateLimit.allowed) {
+        return jsonResponse({
+          success: false,
+          error: rateLimit.error || "Too many photo analysis requests. Please try again later.",
+          requestId,
+        }, rateLimit.status, rateLimit.retryAfter
+          ? { "Retry-After": String(rateLimit.retryAfter) }
+          : {});
+      }
+
       if (!env || !env.AI || typeof env.AI.run !== "function") {
         return jsonResponse({
           success: false,
           error: "Cloudflare AI binding is missing. Check the Worker AI binding.",
+          requestId,
         }, 500);
       }
-
-      const requestId = crypto.randomUUID();
 
       try {
         let body;
@@ -853,6 +946,17 @@ export default {
     }
 
     const requestId = crypto.randomUUID();
+    const rateLimit = await checkRateLimit(env, request, "chat");
+    if (!rateLimit.allowed) {
+      return jsonResponse({
+        success: false,
+        error: rateLimit.error || "Too many chat requests. Please try again later.",
+        requestId,
+      }, rateLimit.status, rateLimit.retryAfter
+        ? { "Retry-After": String(rateLimit.retryAfter) }
+        : {});
+
+    }
 
     try {
       if (!env || !env.AI || typeof env.AI.run !== "function") {
