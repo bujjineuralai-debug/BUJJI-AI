@@ -6,6 +6,7 @@ import 'dart:io';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:firebase_core/firebase_core.dart';
+import 'package:shared_preferences/shared_preferences.dart';
 import 'firebase_options.dart';
 import 'package:speech_to_text/speech_to_text.dart';
 import 'tools/smart_calculator.dart';
@@ -209,6 +210,15 @@ class ChatMessage {
       'content': content,
     };
   }
+
+  factory ChatMessage.fromJson(Map<String, dynamic> json) {
+    final role = json['role'];
+    final content = json['content'];
+    if ((role != 'user' && role != 'assistant') || content is! String) {
+      throw const FormatException('Invalid saved chat message.');
+    }
+    return ChatMessage(role: role as String, content: content);
+  }
 }
 
 class BujjiHomeScreen extends StatefulWidget {
@@ -259,6 +269,7 @@ class _BujjiHomeScreenState extends State<BujjiHomeScreen> {
     setState(() {
       messages.add(ChatMessage(role: 'assistant', content: reply));
     });
+    _persistMessages();
     scrollToBottom();
   }
 
@@ -319,6 +330,57 @@ class _BujjiHomeScreenState extends State<BujjiHomeScreen> {
       ScrollController();
 
   final List<ChatMessage> messages = [];
+  static const String _chatStorageKey = 'bujji_chat_messages_v1';
+
+  @override
+  void initState() {
+    super.initState();
+    _restoreMessages();
+  }
+
+  Future<void> _restoreMessages() async {
+    try {
+      final prefs = await SharedPreferences.getInstance();
+      final saved = prefs.getString(_chatStorageKey);
+      if (saved == null || saved.isEmpty) return;
+      final decoded = jsonDecode(saved);
+      if (decoded is! List) return;
+      final restored = <ChatMessage>[];
+      for (final item in decoded) {
+        if (item is Map<String, dynamic>) {
+          try {
+            restored.add(ChatMessage.fromJson(item));
+          } on FormatException {
+            // Skip malformed local entries without losing valid messages.
+          }
+        }
+      }
+      if (!mounted || restored.isEmpty) return;
+      setState(() {
+        messages
+          ..clear()
+          ..addAll(restored.take(100));
+      });
+      scrollToBottom();
+    } catch (error) {
+      debugPrint('BUJJI local chat restore failed: $error');
+    }
+  }
+
+  Future<void> _persistMessages() async {
+    try {
+      final prefs = await SharedPreferences.getInstance();
+      final recent = messages.length > 100
+          ? messages.sublist(messages.length - 100)
+          : messages;
+      await prefs.setString(
+        _chatStorageKey,
+        jsonEncode(recent.map((item) => item.toJson()).toList()),
+      );
+    } catch (error) {
+      debugPrint('BUJJI local chat save failed: $error');
+    }
+  }
 
   final Color cyan = const Color(0xFF25B8FF);
   final Color gold = const Color(0xFFFFC857);
@@ -478,6 +540,7 @@ class _BujjiHomeScreenState extends State<BujjiHomeScreen> {
       messages.add(ChatMessage(role: 'user', content: message));
       isLoading = true;
     });
+    _persistMessages();
     messageController.clear();
     scrollToBottom();
 
@@ -812,6 +875,17 @@ class _BujjiHomeScreenState extends State<BujjiHomeScreen> {
   Widget _buildHomeContent() {
     return Column(
       children: [
+        if (lastRequestId != null)
+          Padding(
+            padding: const EdgeInsets.fromLTRB(16, 8, 16, 4),
+            child: Align(
+              alignment: Alignment.centerLeft,
+              child: SelectableText(
+                'Trace ID: $lastRequestId',
+                style: const TextStyle(color: Color(0xFF8CA6BD), fontSize: 10),
+              ),
+            ),
+          ),
         if (messages.isEmpty)
           Container(
             width: double.infinity,
