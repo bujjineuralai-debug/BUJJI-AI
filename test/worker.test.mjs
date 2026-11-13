@@ -83,22 +83,38 @@ function chatRequest(body, headers = { "content-type": "application/json" }) {
   });
 }
 
-test("OPTIONS preflight allows authenticated Flutter API requests", async () => {
+test("CORS preflight reflects only an explicitly allowlisted origin", async () => {
+  const request = new Request("https://example.test/chat", {
+    method: "OPTIONS",
+    headers: {
+      Origin: "https://app.example.test",
+      "Access-Control-Request-Method": "POST",
+      "Access-Control-Request-Headers": "content-type,authorization",
+    },
+  });
+  const allowed = await worker.fetch(request, {
+    CORS_ALLOWED_ORIGINS: "https://app.example.test, https://admin.example.test",
+  });
+  assert.equal(allowed.status, 204);
+  assert.equal(allowed.headers.get("Access-Control-Allow-Origin"), "https://app.example.test");
+  assert.match(allowed.headers.get("Access-Control-Allow-Methods") || "", /POST/);
+  assert.match(allowed.headers.get("Access-Control-Allow-Headers") || "", /Authorization/i);
+  assert.match(allowed.headers.get("Vary") || "", /Origin/i);
+
+  const denied = await worker.fetch(request, {
+    CORS_ALLOWED_ORIGINS: "https://admin.example.test",
+  });
+  assert.equal(denied.status, 403);
+  assert.equal(denied.headers.get("Access-Control-Allow-Origin"), null);
+});
+
+test("requests without an Origin header remain usable by native clients", async () => {
   const response = await worker.fetch(
-    new Request("https://example.test/chat", {
-      method: "OPTIONS",
-      headers: {
-        Origin: "https://app.example.test",
-        "Access-Control-Request-Method": "POST",
-        "Access-Control-Request-Headers": "content-type,authorization",
-      },
-    }),
+    new Request("https://example.test/", { method: "GET" }),
     {},
   );
-  assert.equal(response.status, 204);
-  assert.equal(response.headers.get("Access-Control-Allow-Origin"), "*");
-  assert.match(response.headers.get("Access-Control-Allow-Methods") || "", /POST/);
-  assert.match(response.headers.get("Access-Control-Allow-Headers") || "", /Authorization/i);
+  assert.equal(response.status, 200);
+  assert.equal(response.headers.get("Access-Control-Allow-Origin"), null);
 });
 
 test("unknown route returns 404", async () => {
