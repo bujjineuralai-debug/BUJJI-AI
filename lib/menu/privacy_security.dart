@@ -1,5 +1,7 @@
 import 'package:flutter/material.dart';
 
+import 'ai_diagnostics_screen.dart';
+
 class PrivacySecurityScreen extends StatelessWidget {
   const PrivacySecurityScreen({super.key});
 
@@ -65,12 +67,37 @@ class PrivacySecurityScreen extends StatelessWidget {
                   'When you use online AI features, your message and the conversation context needed for the reply are sent to the BUJJI AI service over an encrypted HTTPS connection.',
                 ),
                 _InfoText(
-                  'In this app version, chat messages are kept in the active screen session and are not saved as a local chat history by the app.',
+                  'The app stores up to the 100 most recent chat messages locally on this device so the conversation can be restored after reopening the app. This is device-local storage, not cloud chat sync.',
                 ),
                 _InfoText(
-                  'This screen does not confirm server-side retention practices. Avoid entering passwords, banking details, government ID numbers or other highly sensitive information into AI chats.',
+                  'Local API diagnostics keep up to 50 recent request summaries (endpoint, time, duration, HTTP status, outcome and Trace ID). Prompts, chat history, images and authentication tokens are not included. This screen does not confirm server-side retention practices. Avoid entering passwords, banking details, government ID numbers or other highly sensitive information into AI chats.',
                 ),
               ],
+            ),
+            Container(
+              margin: const EdgeInsets.only(top: 13),
+              decoration: BoxDecoration(
+                color: panel,
+                borderRadius: BorderRadius.circular(15),
+                border: Border.all(color: cyan.withOpacity(0.28)),
+              ),
+              child: ListTile(
+                leading: const Icon(Icons.monitor_heart_outlined, color: cyan),
+                title: const Text(
+                  'AI Diagnostics',
+                  style: TextStyle(color: Colors.white, fontWeight: FontWeight.w600),
+                ),
+                subtitle: const Text(
+                  'View recent API health, errors and Trace IDs stored on this device.',
+                  style: TextStyle(color: muted, fontSize: 12),
+                ),
+                trailing: const Icon(Icons.chevron_right, color: muted),
+                onTap: () => Navigator.of(context).push(
+                  MaterialPageRoute(
+                    builder: (_) => const AiDiagnosticsScreen(),
+                  ),
+                ),
+              ),
             ),
             _section(
               icon: Icons.mic_none_rounded,
@@ -113,7 +140,7 @@ class PrivacySecurityScreen extends StatelessWidget {
                   'You can stop using voice recognition at any time by tapping the microphone control again or leaving the voice input flow.',
                 ),
                 _InfoText(
-                  'This version does not yet provide in-app account, data export, or server-data deletion controls. We will add such controls only when the related services are implemented.',
+                  'You can clear local API diagnostics from the AI Diagnostics screen. Chat history can be cleared from the chat screen. Server-side data export or deletion controls are not provided by this version.',
                 ),
               ],
             ),
