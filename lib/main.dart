@@ -356,7 +356,7 @@ class _BujjiHomeScreenState extends State<BujjiHomeScreen> {
           }
         }
       }
-      if (!mounted || restored.isEmpty) return;
+      if (!mounted || restored.isEmpty || messages.isNotEmpty) return;
       setState(() {
         messages
           ..clear()
