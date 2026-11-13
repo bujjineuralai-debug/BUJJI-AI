@@ -19,6 +19,7 @@ import 'menu/feedback_suggestions.dart';
 import 'menu/help_support.dart';
 import 'menu/privacy_security.dart';
 import 'menu/menu_features.dart';
+import 'services/bujji_api_service.dart';
 
 Future<void> main() async {
   WidgetsFlutterBinding.ensureInitialized();
@@ -551,52 +552,23 @@ class _BujjiHomeScreenState extends State<BujjiHomeScreen> {
       return;
     }
 
-    final HttpClient client = HttpClient();
-    client.connectionTimeout = const Duration(seconds: 20);
-
     try {
-      final Uri uri = Uri.parse(apiUrl);
-      final HttpClientRequest request =
-          await client.postUrl(uri).timeout(const Duration(seconds: 30));
-      request.headers.contentType = ContentType.json;
-      request.headers.set(HttpHeaders.acceptHeader, 'application/json');
-      request.add(utf8.encode(jsonEncode({
-        'message': message,
-        'history': history,
-      })));
-
-      final HttpClientResponse response =
-          await request.close().timeout(const Duration(seconds: 60));
-      final String responseBody =
-          await utf8.decoder.bind(response).join().timeout(
-                const Duration(seconds: 30),
-              );
-
-      dynamic decoded;
-      try {
-        decoded = jsonDecode(responseBody);
-      } catch (_) {
-        throw Exception(
-          'HTTP ${response.statusCode}: Invalid JSON response.',
-        );
-      }
-
-      if (decoded is! Map<String, dynamic>) {
-        throw Exception('HTTP ${response.statusCode}: Invalid server response.');
-      }
-      final String? traceId = decoded['requestId'] is String
-          ? decoded['requestId'] as String
-          : null;
+      final apiResponse = await BujjiApiService.postJson(
+        Uri.parse(apiUrl),
+        {'message': message, 'history': history},
+      );
+      final int statusCode = apiResponse.statusCode;
+      final Map<String, dynamic> decoded = apiResponse.data;
       if (traceId != null && traceId.isNotEmpty) {
         lastRequestId = traceId;
         debugPrint('BUJJI AI Trace ID: $traceId');
       }
-      if (response.statusCode < 200 ||
-          response.statusCode >= 300 ||
+      if (statusCode < 200 ||
+          statusCode >= 300 ||
           decoded['success'] != true) {
         final String serverError = decoded['error']?.toString() ??
             decoded['message']?.toString() ?? 'Unknown server error';
-        throw Exception('HTTP ${response.statusCode}: $serverError');
+        throw Exception('HTTP $statusCode: $serverError');
       }
 
       final String reply = decoded['reply']?.toString() ?? '';
@@ -631,7 +603,6 @@ class _BujjiHomeScreenState extends State<BujjiHomeScreen> {
           : errorDetails;
       showMessage('BUJJI AI error: $visibleError');
     } finally {
-      client.close(force: true);
       if (mounted) {
         setState(() => isLoading = false);
         scrollToBottom();
@@ -1605,7 +1576,7 @@ dates, addresses, or contact details. Use clear placeholders such as
     } catch (error) {
       if (mounted) showNotice('Generation failed: $error');
     } finally {
-      client.close(force: true);
+
       if (mounted) setState(() => isGenerating = false);
     }
   }
