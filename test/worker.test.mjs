@@ -12,6 +12,54 @@ afterEach(() => {
   globalThis.fetch = originalFetch;
 });
 
+
+function base64Url(value) {
+  return Buffer.from(value).toString("base64url");
+}
+
+async function makeFirebaseToken(projectId = "bujji-ai-2e2af", overrides = {}) {
+  const pair = await crypto.subtle.generateKey(
+    {
+      name: "RSASSA-PKCS1-v1_5",
+      modulusLength: 2048,
+      publicExponent: new Uint8Array([1, 0, 1]),
+      hash: "SHA-256",
+    },
+    true,
+    ["sign", "verify"],
+  );
+  const publicJwk = await crypto.subtle.exportKey("jwk", pair.publicKey);
+  publicJwk.kid = "phase4-test-key";
+  publicJwk.alg = "RS256";
+  publicJwk.use = "sig";
+
+  const now = Math.floor(Date.now() / 1000);
+  const header = base64Url(JSON.stringify({
+    alg: "RS256",
+    typ: "JWT",
+    kid: publicJwk.kid,
+  }));
+  const claims = base64Url(JSON.stringify({
+    aud: projectId,
+    iss: `https://securetoken.google.com/${projectId}`,
+    sub: "phase4-test-user",
+    iat: now,
+    exp: now + 3600,
+    auth_time: now,
+    ...overrides,
+  }));
+  const signingInput = `${header}.${claims}`;
+  const signature = await crypto.subtle.sign(
+    "RSASSA-PKCS1-v1_5",
+    pair.privateKey,
+    new TextEncoder().encode(signingInput),
+  );
+  return {
+    token: `${signingInput}.${Buffer.from(signature).toString("base64url")}`,
+    jwks: { keys: [publicJwk] },
+  };
+}
+
 function envWithAi(run = async () => ({ response: "fallback reply" })) {
   return { AI: { run }, GEMINI_API_KEY: "test-key" };
 }
@@ -168,4 +216,67 @@ test("Durable Object enforces an atomic fixed-window request limit", async () =>
   const data = await denied.json();
   assert.equal(data.allowed, false);
   assert.ok(data.retryAfter >= 1);
+});
+
+test("required Firebase authentication rejects requests without a bearer token", async () => {
+  const env = envWithAi();
+  env.REQUIRE_FIREBASE_AUTH = "true";
+  env.FIREBASE_PROJECT_ID = "bujji-ai-2e2af";
+  const response = await worker.fetch(
+    chatRequest(JSON.stringify({ message: "hello" })),
+    env,
+  );
+  assert.equal(response.status, 401);
+  assert.equal(response.headers.get("WWW-Authenticate"), "Bearer");
+});
+
+test("Firebase authentication verifies RS256 signature and project claims", async () => {
+  const { token, jwks } = await makeFirebaseToken();
+  globalThis.fetch = async (url) => {
+    if (String(url).includes("securetoken@system.gserviceaccount.com")) {
+      return new Response(JSON.stringify(jwks), {
+        status: 200,
+        headers: { "content-type": "application/json" },
+      });
+    }
+    return new Response(JSON.stringify({
+      candidates: [{
+        content: { parts: [{ text: "Authenticated response." }] },
+        finishReason: "STOP",
+      }],
+    }), { status: 200, headers: { "content-type": "application/json" } });
+  };
+
+  const env = envWithAi();
+  env.REQUIRE_FIREBASE_AUTH = "true";
+  env.FIREBASE_PROJECT_ID = "bujji-ai-2e2af";
+  const response = await worker.fetch(
+    chatRequest(JSON.stringify({ message: "hello" }), {
+      "content-type": "application/json",
+      authorization: `Bearer ${token}`,
+    }),
+    env,
+  );
+  const data = await response.json();
+  assert.equal(response.status, 200);
+  assert.equal(data.reply, "Authenticated response.");
+});
+
+test("Firebase authentication rejects expired ID tokens", async () => {
+  const now = Math.floor(Date.now() / 1000);
+  const { token } = await makeFirebaseToken("bujji-ai-2e2af", {
+    iat: now - 7200,
+    exp: now - 3600,
+  });
+  const env = envWithAi();
+  env.REQUIRE_FIREBASE_AUTH = "true";
+  env.FIREBASE_PROJECT_ID = "bujji-ai-2e2af";
+  const response = await worker.fetch(
+    chatRequest(JSON.stringify({ message: "hello" }), {
+      "content-type": "application/json",
+      authorization: `Bearer ${token}`,
+    }),
+    env,
+  );
+  assert.equal(response.status, 401);
 });
