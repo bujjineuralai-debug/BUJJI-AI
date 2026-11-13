@@ -68,6 +68,15 @@ class BujjiApiService {
     }
   }
 
+  static Future<void> clearDiagnostics() async {
+    try {
+      final prefs = await SharedPreferences.getInstance();
+      await prefs.remove(_diagnosticsKey);
+    } catch (_) {
+      // Clearing local diagnostics is best effort.
+    }
+  }
+
   static Future<List<Map<String, dynamic>>> getRecentDiagnostics() async {
     try {
       final prefs = await SharedPreferences.getInstance();
