@@ -381,6 +381,10 @@ test("Roman Telugu, Telugu script and Hindi messages select their reply language
     { message: "नमस्ते", expected: "detected as Hindi" },
     { message: "How are you today?", expected: "detected as English" },
     { message: "nenu chala happy ga unna", expected: "detected as Telugu" },
+    { message: "aap kaise hain", expected: "detected as Hindi" },
+    { message: "njan sukham aanu", expected: "detected as Malayalam" },
+    { message: "nenu happy ga unna", expected: "detected as Telugu" },
+    { message: "నమస్కారం hello", expected: "detected as Telugu" },
   ];
 
   for (const sample of samples) {
