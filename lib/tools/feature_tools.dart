@@ -1,5 +1,4 @@
 import 'dart:convert';
-import 'dart:io';
 import 'package:audioplayers/audioplayers.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
@@ -93,7 +92,6 @@ class _VisionPageState extends State<_VisionPage> {
       lastRequestId = null;
     });
 
-    HttpClient? client;
     try {
       final bytes = await selectedPhoto.readAsBytes();
       if (bytes.length > 5 * 1024 * 1024) {
