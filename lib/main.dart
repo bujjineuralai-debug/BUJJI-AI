@@ -613,6 +613,37 @@ class _BujjiHomeScreenState extends State<BujjiHomeScreen> {
     }
   }
 
+  Future<void> _clearLocalChatHistory() async {
+    final shouldClear = await showDialog<bool>(
+      context: context,
+      builder: (dialogContext) => AlertDialog(
+        backgroundColor: const Color(0xFF0B1B2D),
+        title: const Text('Clear local chat?', style: TextStyle(color: Colors.white)),
+        content: const Text(
+          'This removes the chat messages saved on this device. It does not delete any server-side records.',
+          style: TextStyle(color: Color(0xFF9AACC1)),
+        ),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.pop(dialogContext, false),
+            child: const Text('Cancel'),
+          ),
+          TextButton(
+            onPressed: () => Navigator.pop(dialogContext, true),
+            child: const Text('Clear', style: TextStyle(color: Color(0xFFFF8A80))),
+          ),
+        ],
+      ),
+    );
+    if (shouldClear != true || !mounted) return;
+    setState(() {
+      messages.clear();
+      lastRequestId = null;
+    });
+    await _persistMessages();
+    showMessage('Local chat history cleared.');
+  }
+
   void scrollToBottom() {
     WidgetsBinding.instance.addPostFrameCallback((_) {
       if (!mounted ||
@@ -805,6 +836,12 @@ class _BujjiHomeScreenState extends State<BujjiHomeScreen> {
               ],
             ),
           ),
+          if (messages.isNotEmpty)
+            IconButton(
+              tooltip: 'Clear local chat history',
+              onPressed: isLoading ? null : _clearLocalChatHistory,
+              icon: const Icon(Icons.delete_outline_rounded, color: Color(0xFF9AACC1)),
+            ),
           InkWell(
             onTap: chooseMode,
             borderRadius: BorderRadius.circular(22),
