@@ -18,6 +18,13 @@ import '../../../menu/help_support.dart';
 import '../../../menu/privacy_security.dart';
 import '../../../menu/menu_features.dart';
 
+class BujjiHomeScreen extends StatefulWidget {
+  const BujjiHomeScreen({super.key});
+
+  @override
+  State<BujjiHomeScreen> createState() => _BujjiHomeScreenState();
+}
+
 enum BujjiMode { smartAuto, onlineAI, offline }
 
 class _BujjiHomeScreenState extends State<BujjiHomeScreen> {
