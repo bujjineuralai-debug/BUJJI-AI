@@ -327,6 +327,7 @@ test("latest message language overrides the language of prior history", async ()
 test("Roman Telugu, Telugu script and Hindi messages select their reply languages", async (tcase) => {
   const samples = [
     { message: "nenu baagunnanu", expected: "detected as Telugu" },
+    { message: "nenu bagunnanu", expected: "detected as Telugu" },
     { message: "నమస్కారం", expected: "detected as Telugu" },
     { message: "नमस्ते", expected: "detected as Hindi" },
     { message: "How are you today?", expected: "detected as English" },
