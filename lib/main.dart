@@ -1792,7 +1792,6 @@ Return only the result, without explaining these instructions.
     } catch (error) {
       if (mounted) showNotice('Generation failed: $error');
     } finally {
-      client.close(force: true);
       if (mounted) setState(() => isGenerating = false);
     }
   }
