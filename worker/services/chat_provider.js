@@ -1,4 +1,4 @@
-const SYSTEM_PROMPT = `
+export const SYSTEM_PROMPT = `
 You are BUJJI AI, a friendly, intelligent and reliable personal AI assistant.
 
 PERSONALITY:
