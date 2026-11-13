@@ -29,6 +29,12 @@ void main() {
     await tester.pump();
 
     expect(find.text('INR'), findsWidgets);
-    expect(find.text('Indian Rupee'), findsOneWidget);
+    expect(
+      find.descendant(
+        of: find.byType(ListTile),
+        matching: find.text('Indian Rupee'),
+      ),
+      findsOneWidget,
+    );
   });
 }
