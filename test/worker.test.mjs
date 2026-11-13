@@ -281,6 +281,45 @@ test("Firebase authentication rejects expired ID tokens", async () => {
   assert.equal(response.status, 401);
 });
 
+test("Firebase authentication rejects tokens issued for another project", async () => {
+  const { token, jwks } = await makeFirebaseToken("another-firebase-project");
+  globalThis.fetch = async () => new Response(JSON.stringify(jwks), {
+    status: 200,
+    headers: { "content-type": "application/json" },
+  });
+  const env = envWithAi();
+  env.REQUIRE_FIREBASE_AUTH = "true";
+  env.FIREBASE_PROJECT_ID = "bujji-ai-2e2af";
+  const response = await worker.fetch(
+    chatRequest(JSON.stringify({ message: "hello" }), {
+      "content-type": "application/json",
+      authorization: `Bearer ${token}`,
+    }),
+    env,
+  );
+  assert.equal(response.status, 401);
+});
+
+test("Firebase authentication rejects a token with an invalid RS256 signature", async () => {
+  const signed = await makeFirebaseToken();
+  const other = await makeFirebaseToken();
+  globalThis.fetch = async () => new Response(JSON.stringify(other.jwks), {
+    status: 200,
+    headers: { "content-type": "application/json" },
+  });
+  const env = envWithAi();
+  env.REQUIRE_FIREBASE_AUTH = "true";
+  env.FIREBASE_PROJECT_ID = "bujji-ai-2e2af";
+  const response = await worker.fetch(
+    chatRequest(JSON.stringify({ message: "hello" }), {
+      "content-type": "application/json",
+      authorization: `Bearer ${signed.token}`,
+    }),
+    env,
+  );
+  assert.equal(response.status, 401);
+});
+
 test("Vision route also rejects requests without Firebase authentication", async () => {
   const env = envWithAi();
   env.REQUIRE_FIREBASE_AUTH = "true";
