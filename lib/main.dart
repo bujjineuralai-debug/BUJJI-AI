@@ -227,6 +227,7 @@ class _BujjiHomeScreenState extends State<BujjiHomeScreen> {
 
   int selectedIndex = 0;
   bool isLoading = false;
+  String? lastRequestId;
   BujjiMode selectedMode = BujjiMode.smartAuto;
 
   String get modeLabel {
@@ -518,6 +519,13 @@ class _BujjiHomeScreenState extends State<BujjiHomeScreen> {
 
       if (decoded is! Map<String, dynamic>) {
         throw Exception('HTTP ${response.statusCode}: Invalid server response.');
+      }
+      final String? traceId = decoded['requestId'] is String
+          ? decoded['requestId'] as String
+          : null;
+      if (traceId != null && traceId.isNotEmpty) {
+        lastRequestId = traceId;
+        debugPrint('BUJJI AI Trace ID: $traceId');
       }
       if (response.statusCode < 200 ||
           response.statusCode >= 300 ||
