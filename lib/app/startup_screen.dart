@@ -107,11 +107,3 @@ class _BujjiStartupScreenState extends State<BujjiStartupScreen> {
   }
 }
 
-class BujjiHomeScreen extends StatefulWidget {
-  const BujjiHomeScreen({super.key});
-
-  @override
-  State<BujjiHomeScreen> createState() =>
-      _BujjiHomeScreenState();
-}
-
