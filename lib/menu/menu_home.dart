@@ -58,14 +58,14 @@ class BujjiMenuHome extends StatelessWidget {
     showDialog<void>(
       context: context,
       builder: (dialogContext) => AlertDialog(
-        backgroundColor: const Color(0xFF0B1B2D),
+        backgroundColor: Colors.white,
         icon: Icon(item.icon, color: cyan, size: 32),
         title: Text(item.title,
             style: const TextStyle(
-                color: Colors.white, fontWeight: FontWeight.bold)),
+                color: Color(0xFF202A33), fontWeight: FontWeight.bold)),
         content: const Text(
           'ఈ Menu option జోడించబడింది. దీని వివరాలు, పనితీరును మనం ఒక్కొక్కటిగా చర్చించి అమలు చేద్దాం.',
-          style: TextStyle(color: Color(0xFFCBD8E8), height: 1.5),
+          style: TextStyle(color: Color(0xFF5F6B76), height: 1.5),
         ),
         actions: [
           TextButton(

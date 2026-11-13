@@ -176,7 +176,7 @@ class _CurrencyConverterState extends State<CurrencyConverter> {
     final selected = isFrom ? fromCode : toCode;
     final choice = await showModalBottomSheet<String>(
       context: context,
-      backgroundColor: _card,
+      backgroundColor: Colors.white,
       isScrollControlled: true,
       shape: const RoundedRectangleBorder(
         borderRadius: BorderRadius.vertical(top: Radius.circular(22)),
@@ -449,19 +449,19 @@ class _CurrencyPickerState extends State<_CurrencyPicker> {
         child: SizedBox(
           height: MediaQuery.of(context).size.height * .65,
           child: Column(children: [
-            const Text('Select currency', style: TextStyle(color: Colors.white,
+            const Text('Select currency', style: TextStyle(color: Color(0xFF202A33),
                 fontSize: 18, fontWeight: FontWeight.bold)),
             const SizedBox(height: 12),
             TextField(
               controller: searchController,
               onChanged: (_) => setState(() {}),
-              style: const TextStyle(color: Colors.white),
+              style: const TextStyle(color: Color(0xFF202A33)),
               decoration: InputDecoration(
                 hintText: 'Search code or currency name',
-                hintStyle: const TextStyle(color: Colors.white38),
+                hintStyle: const TextStyle(color: Color(0xFF7A8792)), 
                 prefixIcon: const Icon(Icons.search, color: _CurrencyConverterState._cyan),
                 filled: true,
-                fillColor: _CurrencyConverterState._bg,
+                fillColor: const Color(0xFFF2F5F7),
                 border: OutlineInputBorder(
                   borderRadius: BorderRadius.circular(13),
                   borderSide: BorderSide.none,
@@ -478,10 +478,10 @@ class _CurrencyPickerState extends State<_CurrencyPicker> {
                   return ListTile(
                     dense: true,
                     title: Text(entry.key, style: TextStyle(
-                        color: selected ? _CurrencyConverterState._cyan : Colors.white,
+                        color: selected ? _CurrencyConverterState._cyan : const Color(0xFF202A33),
                         fontWeight: FontWeight.bold)),
                     subtitle: Text(entry.value,
-                        style: const TextStyle(color: Colors.white60)),
+                        style: const TextStyle(color: Color(0xFF5F6B76))),
                     trailing: selected
                         ? const Icon(Icons.check_circle, color: _CurrencyConverterState._gold)
                         : null,

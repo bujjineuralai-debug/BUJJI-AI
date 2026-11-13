@@ -264,7 +264,7 @@ class _BujjiHomeScreenState extends State<BujjiHomeScreen> {
   Future<void> chooseMode() async {
     final BujjiMode? mode = await showModalBottomSheet<BujjiMode>(
       context: context,
-      backgroundColor: const Color(0xFF0D1D30),
+      backgroundColor: Colors.white,
       shape: const RoundedRectangleBorder(
         borderRadius: BorderRadius.vertical(top: Radius.circular(22)),
       ),
@@ -275,7 +275,7 @@ class _BujjiHomeScreenState extends State<BujjiHomeScreen> {
             mainAxisSize: MainAxisSize.min,
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
-              const Text('Choose BUJJI Mode', style: TextStyle(color: Colors.white, fontSize: 18, fontWeight: FontWeight.bold)),
+              const Text('Choose BUJJI Mode', style: TextStyle(color: Color(0xFF202A33), fontSize: 18, fontWeight: FontWeight.bold)),
               const SizedBox(height: 12),
               _modeOption(sheetContext, BujjiMode.smartAuto, 'Smart Auto', 'Internet ఉంటే Online AI; లేకపోతే పరిమిత Offline సహాయం', Icons.auto_awesome_rounded),
               _modeOption(sheetContext, BujjiMode.onlineAI, 'Online AI', 'పూర్తి AI సమాధానాల కోసం Internet అవసరం', Icons.cloud_rounded),
@@ -296,9 +296,9 @@ class _BujjiHomeScreenState extends State<BujjiHomeScreen> {
     final bool selected = selectedMode == mode;
     return ListTile(
       contentPadding: const EdgeInsets.symmetric(horizontal: 4),
-      leading: Icon(icon, color: selected ? cyan : Colors.white70),
-      title: Text(title, style: TextStyle(color: selected ? cyan : Colors.white, fontWeight: FontWeight.w600)),
-      subtitle: Text(subtitle, style: const TextStyle(color: Color(0xFF9AACC1), fontSize: 12)),
+      leading: Icon(icon, color: selected ? cyan : const Color(0xFF5F6B76)),
+      title: Text(title, style: TextStyle(color: selected ? cyan : const Color(0xFF202A33), fontWeight: FontWeight.w600)),
+      subtitle: Text(subtitle, style: const TextStyle(color: Color(0xFF5F6B76), fontSize: 12)),
       trailing: selected ? Icon(Icons.check_circle_rounded, color: cyan) : null,
       onTap: () => Navigator.pop(sheetContext, mode),
     );

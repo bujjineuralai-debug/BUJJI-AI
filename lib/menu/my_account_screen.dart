@@ -407,22 +407,22 @@ class _PhoneDialogState extends State<_PhoneDialog> {
 
   @override
   Widget build(BuildContext context) => AlertDialog(
-    backgroundColor: _panel,
-    title: Text(widget.signup ? 'Mobile Signup' : 'Mobile Login / OTP', style: const TextStyle(color: Colors.white, fontWeight: FontWeight.bold)),
+    backgroundColor: Colors.white,
+    title: Text(widget.signup ? 'Mobile Signup' : 'Mobile Login / OTP', style: const TextStyle(color: Color(0xFF202A33), fontWeight: FontWeight.bold)),
     content: SingleChildScrollView(child: Column(mainAxisSize: MainAxisSize.min, children: [
       if (widget.signup) TextField(controller: _name, enabled: !_sent && !_busy,
-        style: const TextStyle(color: Colors.white), decoration: const InputDecoration(labelText: 'Display name', labelStyle: TextStyle(color: _muted))),
+        style: const TextStyle(color: Color(0xFF202A33)), decoration: const InputDecoration(labelText: 'Display name', labelStyle: TextStyle(color: Color(0xFF5F6B76)))),
       if (widget.signup) const SizedBox(height: 8),
       TextField(controller: _phone, enabled: !_sent && !_busy, keyboardType: TextInputType.phone,
-        style: const TextStyle(color: Colors.white),
-        decoration: const InputDecoration(labelText: 'Mobile number (default +91)', hintText: '9876543210 or +919876543210', labelStyle: TextStyle(color: _muted), hintStyle: TextStyle(color: _muted))),
+        style: const TextStyle(color: Color(0xFF202A33)),
+        decoration: const InputDecoration(labelText: 'Mobile number (default +91)', hintText: '9876543210 or +919876543210', labelStyle: TextStyle(color: Color(0xFF5F6B76)), hintStyle: TextStyle(color: Color(0xFF5F6B76)))),
       if (_sent) ...[
         const SizedBox(height: 10),
         TextField(controller: _otp, keyboardType: TextInputType.number, maxLength: 6,
-          style: const TextStyle(color: Colors.white, letterSpacing: 5),
-          decoration: const InputDecoration(labelText: 'SMS OTP', labelStyle: TextStyle(color: _muted))),
+          style: const TextStyle(color: Color(0xFF202A33), letterSpacing: 5),
+          decoration: const InputDecoration(labelText: 'SMS OTP', labelStyle: TextStyle(color: Color(0xFF5F6B76)))),
       ],
-      if (_error != null) ...[const SizedBox(height: 8), Text(_error!, style: const TextStyle(color: _cyan, fontSize: 12))],
+      if (_error != null) ...[const SizedBox(height: 8), Text(_error!, style: const TextStyle(color: Color(0xFF0879AD), fontSize: 12))],
     ])),
     actions: [
       TextButton(onPressed: _busy ? null : () => Navigator.pop(context, false), child: const Text('Cancel')),
@@ -500,8 +500,8 @@ class _EmailDialogState extends State<_EmailDialog> {
 
   @override
   Widget build(BuildContext context) => AlertDialog(
-    backgroundColor: _panel,
-    title: Text(_signup ? 'Email Signup' : 'Email Login', style: const TextStyle(color: Colors.white, fontWeight: FontWeight.bold)),
+    backgroundColor: Colors.white,
+    title: Text(_signup ? 'Email Signup' : 'Email Login', style: const TextStyle(color: Color(0xFF202A33), fontWeight: FontWeight.bold)),
     content: SingleChildScrollView(child: Column(mainAxisSize: MainAxisSize.min, children: [
       SegmentedButton<bool>(
         segments: const [ButtonSegment(value: true, label: Text('Sign up')), ButtonSegment(value: false, label: Text('Log in'))],
@@ -510,23 +510,23 @@ class _EmailDialogState extends State<_EmailDialog> {
       ),
       if (_signup) ...[
         const SizedBox(height: 8),
-        TextField(controller: _name, style: const TextStyle(color: Colors.white), decoration: const InputDecoration(labelText: 'Display name', labelStyle: TextStyle(color: _muted))),
+        TextField(controller: _name, style: const TextStyle(color: Color(0xFF202A33)), decoration: const InputDecoration(labelText: 'Display name', labelStyle: TextStyle(color: Color(0xFF5F6B76)))),
       ],
       const SizedBox(height: 8),
       TextField(controller: _email, keyboardType: TextInputType.emailAddress, autocorrect: false,
-        style: const TextStyle(color: Colors.white), decoration: const InputDecoration(labelText: 'Email address', labelStyle: TextStyle(color: _muted))),
+        style: const TextStyle(color: Color(0xFF202A33)), decoration: const InputDecoration(labelText: 'Email address', labelStyle: TextStyle(color: Color(0xFF5F6B76)))),
       const SizedBox(height: 8),
-      TextField(controller: _password, obscureText: _obscure, style: const TextStyle(color: Colors.white),
-        decoration: InputDecoration(labelText: 'Password', labelStyle: const TextStyle(color: _muted),
-          suffixIcon: IconButton(onPressed: () => setState(() => _obscure = !_obscure), icon: Icon(_obscure ? Icons.visibility : Icons.visibility_off, color: _muted)))),
+      TextField(controller: _password, obscureText: _obscure, style: const TextStyle(color: Color(0xFF202A33)),
+        decoration: InputDecoration(labelText: 'Password', labelStyle: const TextStyle(color: Color(0xFF5F6B76)),
+          suffixIcon: IconButton(onPressed: () => setState(() => _obscure = !_obscure), icon: Icon(_obscure ? Icons.visibility : Icons.visibility_off, color: Color(0xFF5F6B76))))),
       if (_signup) ...[
         const SizedBox(height: 8),
-        TextField(controller: _confirm, obscureText: true, style: const TextStyle(color: Colors.white),
-          decoration: const InputDecoration(labelText: 'Confirm password', labelStyle: TextStyle(color: _muted))),
+        TextField(controller: _confirm, obscureText: true, style: const TextStyle(color: Color(0xFF202A33)),
+          decoration: const InputDecoration(labelText: 'Confirm password', labelStyle: TextStyle(color: Color(0xFF5F6B76)))),
       ],
-      if (_error != null) ...[const SizedBox(height: 8), Text(_error!, style: const TextStyle(color: Colors.orangeAccent, fontSize: 12))],
+      if (_error != null) ...[const SizedBox(height: 8), Text(_error!, style: const TextStyle(color: Color(0xFFB45309), fontSize: 12))],
       const SizedBox(height: 8),
-      const Text('New email accounts receive a verification link. If you are already signed in, Sign up links this email to your current BUJJI account.', style: TextStyle(color: _muted, fontSize: 11, height: 1.4)),
+      const Text('New email accounts receive a verification link. If you are already signed in, Sign up links this email to your current BUJJI account.', style: TextStyle(color: Color(0xFF5F6B76), fontSize: 11, height: 1.4)),
     ])),
     actions: [
       TextButton(onPressed: _busy ? null : () => Navigator.pop(context, false), child: const Text('Cancel')),
@@ -566,14 +566,14 @@ class _RecoveryDialogState extends State<_RecoveryDialog> {
 
   @override
   Widget build(BuildContext context) => AlertDialog(
-    backgroundColor: _panel,
-    title: const Text('Account Recovery', style: TextStyle(color: Colors.white, fontWeight: FontWeight.bold)),
+    backgroundColor: Colors.white,
+    title: const Text('Account Recovery', style: TextStyle(color: Color(0xFF202A33), fontWeight: FontWeight.bold)),
     content: Column(mainAxisSize: MainAxisSize.min, children: [
-      const Text('Enter your verified recovery email to receive a password reset link. After signing in, use Add / Change Phone Number to verify a replacement mobile number.', style: TextStyle(color: _muted, height: 1.4)),
+      const Text('Enter your verified recovery email to receive a password reset link. After signing in, use Add / Change Phone Number to verify a replacement mobile number.', style: TextStyle(color: Color(0xFF5F6B76), height: 1.4)),
       const SizedBox(height: 12),
-      TextField(controller: _email, keyboardType: TextInputType.emailAddress, style: const TextStyle(color: Colors.white),
-        decoration: const InputDecoration(labelText: 'Recovery email', labelStyle: TextStyle(color: _muted))),
-      if (_message != null) ...[const SizedBox(height: 10), Text(_message!, style: const TextStyle(color: _cyan, fontSize: 12))],
+      TextField(controller: _email, keyboardType: TextInputType.emailAddress, style: const TextStyle(color: Color(0xFF202A33)),
+        decoration: const InputDecoration(labelText: 'Recovery email', labelStyle: TextStyle(color: Color(0xFF5F6B76)))),
+      if (_message != null) ...[const SizedBox(height: 10), Text(_message!, style: const TextStyle(color: Color(0xFF0879AD), fontSize: 12))],
     ]),
     actions: [
       TextButton(onPressed: _busy ? null : () => Navigator.pop(context), child: const Text('Close')),
