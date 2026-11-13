@@ -539,6 +539,7 @@ class _BujjiHomeScreenState extends State<BujjiHomeScreen> {
     setState(() {
       messages.add(ChatMessage(role: 'user', content: message));
       isLoading = true;
+      lastRequestId = null;
     });
     _persistMessages();
     messageController.clear();
