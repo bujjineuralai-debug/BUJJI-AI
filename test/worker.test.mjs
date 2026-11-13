@@ -371,3 +371,82 @@ test("both Gemini and Llama failures return a safe server error", async () => {
   assert.ok(data.requestId);
   assert.equal(data.error, "Unable to process your request. Please try again.");
 });
+
+test("Vision validates image payload and returns an answer with Trace ID", async () => {
+  let called = false;
+  const env = envWithAi(async (model, input) => {
+    called = true;
+    assert.equal(model, "@cf/moondream/moondream3.1-9B-A2B");
+    assert.equal(input.task, "query");
+    assert.equal(input.image, "data:image/jpeg;base64,aGVsbG8=");
+    return { answer: "ఇది ఒక పరీక్షా చిత్రం." };
+  });
+  const response = await worker.fetch(
+    new Request("https://example.test/vision", {
+      method: "POST",
+      headers: { "content-type": "application/json" },
+      body: JSON.stringify({
+        image: "data:image/jpeg;base64,aGVsbG8=",
+        question: "ఈ చిత్రంలో ఏముంది?",
+      }),
+    }),
+    env,
+  );
+  const data = await response.json();
+  assert.equal(response.status, 200);
+  assert.equal(called, true);
+  assert.equal(data.success, true);
+  assert.equal(data.answer, "ఇది ఒక పరీక్షా చిత్రం.");
+  assert.match(data.requestId, /^[0-9a-f-]{36}$/i);
+});
+
+test("Vision rejects missing and malformed image payloads", async () => {
+  const env = envWithAi();
+  const missing = await worker.fetch(
+    new Request("https://example.test/vision", {
+      method: "POST",
+      headers: { "content-type": "application/json" },
+      body: JSON.stringify({ question: "What is this?" }),
+    }),
+    env,
+  );
+  assert.equal(missing.status, 400);
+
+  const malformed = await worker.fetch(
+    new Request("https://example.test/vision", {
+      method: "POST",
+      headers: { "content-type": "application/json" },
+      body: JSON.stringify({
+        image: "https://example.test/image.jpg",
+        question: "What is this?",
+      }),
+    }),
+    env,
+  );
+  assert.equal(malformed.status, 400);
+});
+
+test("Vision falls back to caption when query has no answer", async () => {
+  let calls = 0;
+  const env = envWithAi(async (_model, input) => {
+    calls += 1;
+    return input.task === "query"
+      ? { answer: "" }
+      : { caption: "A small wooden table." };
+  });
+  const response = await worker.fetch(
+    new Request("https://example.test/vision", {
+      method: "POST",
+      headers: { "content-type": "application/json" },
+      body: JSON.stringify({
+        image: "data:image/jpeg;base64,aGVsbG8=",
+        question: "What is this?",
+      }),
+    }),
+    env,
+  );
+  const data = await response.json();
+  assert.equal(response.status, 200);
+  assert.equal(calls, 2);
+  assert.equal(data.answer, "A small wooden table.");
+});
