@@ -1,0 +1,9 @@
+{
+  "name": "bujji-ai-worker",
+  "private": true,
+  "type": "module",
+  "scripts": {
+    "test:worker": "node --test worker/tests/*.test.js",
+    "check:worker": "node --check worker.js && node --check worker/core/http.js && node --check worker/services/language.js && node --check worker/services/chat_provider.js && node --check worker/routes/chat.js && node --check worker/routes/vision.js"
+  }
+}
