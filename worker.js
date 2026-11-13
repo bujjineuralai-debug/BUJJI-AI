@@ -359,19 +359,39 @@ const MAX_MESSAGE_LENGTH = 4000;
 const MAX_HISTORY_ITEMS = 12;
 const MAX_HISTORY_MESSAGE_LENGTH = 4000;
 
-const CORS_HEADERS = {
-  "Access-Control-Allow-Origin": "*",
-  "Access-Control-Allow-Methods": "GET, POST, OPTIONS",
-  "Access-Control-Allow-Headers": "Content-Type, Authorization",
-  "Access-Control-Max-Age": "86400",
+const BASE_HEADERS = {
   "Content-Type": "application/json; charset=utf-8",
   "Cache-Control": "no-store",
 };
 
+function allowedCorsOrigins(env) {
+  return String(env?.CORS_ALLOWED_ORIGINS || "")
+    .split(",")
+    .map((origin) => origin.trim())
+    .filter(Boolean);
+}
+
+function applyCors(response, request, env) {
+  const headers = new Headers(response.headers);
+  const origin = request.headers.get("Origin");
+  if (origin && allowedCorsOrigins(env).includes(origin)) {
+    headers.set("Access-Control-Allow-Origin", origin);
+    headers.set("Access-Control-Allow-Methods", "GET, POST, OPTIONS");
+    headers.set("Access-Control-Allow-Headers", "Content-Type, Authorization");
+    headers.set("Access-Control-Max-Age", "86400");
+    headers.append("Vary", "Origin");
+  }
+  return new Response(response.body, {
+    status: response.status,
+    statusText: response.statusText,
+    headers,
+  });
+}
+
 function jsonResponse(data, status = 200, extraHeaders = {}) {
   return new Response(JSON.stringify(data), {
     status,
-    headers: { ...CORS_HEADERS, ...extraHeaders },
+    headers: { ...BASE_HEADERS, ...extraHeaders },
   });
 }
 
@@ -877,12 +897,20 @@ function languageInstruction(language, dialect = null) {
   return `IMPORTANT: The latest user message has been detected as ${language}. ${replyStyle} Reply entirely in ${language}, unless the user explicitly asks for translation or another language. Do not follow the language used in older messages when it conflicts with the latest message.${dialectGuidance}`;
 }
 
-export default {
-  async fetch(request, env) {
+async function handleRequest(request, env) {
     if (request.method === "OPTIONS") {
+      const origin = request.headers.get("Origin");
+      if (origin && !allowedCorsOrigins(env).includes(origin)) {
+        return new Response(null, { status: 403, headers: BASE_HEADERS });
+      }
       return new Response(null, {
         status: 204,
-        headers: CORS_HEADERS,
+        headers: {
+          ...BASE_HEADERS,
+          "Access-Control-Allow-Methods": "GET, POST, OPTIONS",
+          "Access-Control-Allow-Headers": "Content-Type, Authorization",
+          "Access-Control-Max-Age": "86400",
+        },
       });
     }
 
@@ -1212,5 +1240,11 @@ export default {
         requestId,
       }, 500);
     }
+}
+
+export default {
+  async fetch(request, env) {
+    const response = await handleRequest(request, env);
+    return applyCors(response, request, env);
   },
 };
