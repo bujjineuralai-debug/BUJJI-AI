@@ -5,6 +5,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:google_mlkit_text_recognition/google_mlkit_text_recognition.dart';
 import 'package:image_picker/image_picker.dart';
+import '../services/bujji_api_service.dart';
 import 'package:path_provider/path_provider.dart';
 import 'package:record/record.dart';
 
@@ -103,47 +104,27 @@ class _VisionPageState extends State<_VisionPage> {
           ? 'Analyze this room photo. Reply in simple Telugu. Suggest furniture layout, lighting, wall colours, storage and low-budget improvements. Do not invent details.'
           : 'Carefully inspect the entire photo and identify the main visible subject. It may be an object, device, tool, vehicle, plant, animal, food, landmark, symbol, document or another real-world thing. Give the most specific common name supported by the visible evidence. Explain the visual clues that support the identification and its usual purpose. If multiple things are visible, identify the main one first and mention other clearly visible items only when useful. Do not give a vague answer when a reasonable identification is possible. If two possibilities genuinely look similar, give up to two candidates and explain the uncertainty instead of inventing certainty. If the photo is too blurry, dark or incomplete, say exactly what is unclear and ask for a clearer photo. Reply in natural, simple Telugu script using this structure: గుర్తించినది; ఎలా గుర్తించాను; ఉపయోగం / వివరణ; నమ్మకం (ఎక్కువ, మధ్యస్థం లేదా తక్కువ). Never invent details that cannot be seen or reliably inferred.';
 
-      client = HttpClient()
-        ..connectionTimeout = const Duration(seconds: 20);
+      final apiResponse = await BujjiApiService.postJson(
+        Uri.parse('$_api/vision'),
+        {
+          'image': 'data:image/jpeg;base64,${base64Encode(bytes)}',
+          'question': prompt,
+        },
+      );
+      final int statusCode = apiResponse.statusCode;
+      final Map<String, dynamic> decoded = apiResponse.data;
 
-      final request = await client
-          .postUrl(Uri.parse('$_api/vision'))
-          .timeout(const Duration(seconds: 25));
-      request.headers.contentType = ContentType.json;
-      request.headers.set(HttpHeaders.acceptHeader, 'application/json');
-      request.add(utf8.encode(jsonEncode({
-        'image': 'data:image/jpeg;base64,${base64Encode(bytes)}',
-        'question': prompt,
-      })));
-
-      final response =
-          await request.close().timeout(const Duration(seconds: 60));
-      final responseText = await response
-          .transform(utf8.decoder)
-          .join()
-          .timeout(const Duration(seconds: 30));
-
-      dynamic decoded;
-      try {
-        decoded = jsonDecode(responseText);
-      } catch (_) {
-        throw Exception('సర్వర్ సరైన సమాధానం పంపలేదు (HTTP ${response.statusCode}).');
-      }
-
-      if (decoded is! Map<String, dynamic>) {
-        throw Exception('సర్వర్ సమాధానం అర్థం కాలేదు.');
-      }
       final traceId = decoded['requestId']?.toString();
       if (traceId != null && traceId.isNotEmpty) {
         lastRequestId = traceId;
         debugPrint('BUJJI Vision Trace ID: $traceId');
       }
 
-      if (response.statusCode < 200 ||
-          response.statusCode >= 300 ||
+      if (statusCode < 200 ||
+          statusCode >= 300 ||
           decoded['success'] != true) {
         final message = decoded['error']?.toString() ??
-            'AI విశ్లేషణ విఫలమైంది (HTTP ${response.statusCode}).';
+            'AI విశ్లేషణ విఫలమైంది (HTTP $statusCode).';
         final detail = decoded['detail']?.toString();
         final requestId = decoded['requestId']?.toString();
         final suffix = detail != null && detail.isNotEmpty
@@ -164,7 +145,6 @@ class _VisionPageState extends State<_VisionPage> {
     } catch (error) {
       msg('విశ్లేషణ విఫలమైంది: ${error.toString().replaceFirst("Exception: ", "")}');
     } finally {
-      client?.close(force: true);
       if (mounted) setState(() => busy = false);
     }
   }
