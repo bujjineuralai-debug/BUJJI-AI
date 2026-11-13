@@ -371,6 +371,59 @@ function jsonResponse(data, status = 200) {
   });
 }
 
+async function readJsonBody(request, maxBytes) {
+  const contentType = request.headers.get("content-type") || "";
+  if (!contentType.toLowerCase().includes("application/json")) {
+    const error = new Error("Content-Type must be application/json.");
+    error.code = "INVALID_CONTENT_TYPE";
+    throw error;
+  }
+
+  const declaredLength = Number(request.headers.get("content-length"));
+  if (Number.isFinite(declaredLength) && declaredLength > maxBytes) {
+    const error = new Error("Request body is too large.");
+    error.code = "BODY_TOO_LARGE";
+    throw error;
+  }
+
+  if (!request.body) {
+    const error = new Error("Request body is empty.");
+    error.code = "INVALID_JSON";
+    throw error;
+  }
+
+  const reader = request.body.getReader();
+  const chunks = [];
+  let total = 0;
+  while (true) {
+    const { done, value } = await reader.read();
+    if (done) break;
+    total += value.byteLength;
+    if (total > maxBytes) {
+      await reader.cancel();
+      const error = new Error("Request body is too large.");
+      error.code = "BODY_TOO_LARGE";
+      throw error;
+    }
+    chunks.push(value);
+  }
+
+  const bytes = new Uint8Array(total);
+  let offset = 0;
+  for (const chunk of chunks) {
+    bytes.set(chunk, offset);
+    offset += chunk.byteLength;
+  }
+
+  try {
+    return JSON.parse(new TextDecoder().decode(bytes));
+  } catch {
+    const error = new Error("Invalid JSON request.");
+    error.code = "INVALID_JSON";
+    throw error;
+  }
+}
+
 const ROMAN_TELUGU_WORDS = new Set([
   "nuvvu", "nuvve", "meeru", "nenu", "memu", "manam", "naaku", "naku", "ninnu", "ninne",
   "neeku", "meeku", "vaallu", "vallu", "ela", "yela", "enti", "emiti",
@@ -643,7 +696,18 @@ export default {
       const requestId = crypto.randomUUID();
 
       try {
-        const body = await request.json();
+        let body;
+        try {
+          body = await readJsonBody(request, 8 * 1024 * 1024);
+        } catch (error) {
+          const tooLarge = error?.code === "BODY_TOO_LARGE";
+          const status = tooLarge ? 413 : error?.code === "INVALID_CONTENT_TYPE" ? 415 : 400;
+          return jsonResponse({
+            success: false,
+            error: tooLarge ? "Request body is too large." : error?.message || "Invalid request.",
+            requestId,
+          }, status);
+        }
         if (!body || typeof body !== "object" || Array.isArray(body)) {
           return jsonResponse({ success: false, error: "Invalid request body.", requestId }, 400);
         }
@@ -804,13 +868,15 @@ export default {
       let body;
 
       try {
-        body = await request.json();
-      } catch {
+        body = await readJsonBody(request, 128 * 1024);
+      } catch (error) {
+        const tooLarge = error?.code === "BODY_TOO_LARGE";
+        const status = tooLarge ? 413 : error?.code === "INVALID_CONTENT_TYPE" ? 415 : 400;
         return jsonResponse({
           success: false,
-          error: "Invalid JSON request.",
+          error: tooLarge ? "Request body is too large." : error?.message || "Invalid request.",
           requestId,
-        }, 400);
+        }, status);
       }
 
       if (!body || typeof body !== "object" || Array.isArray(body)) {
