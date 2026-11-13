@@ -34,7 +34,7 @@ test("diagnostics persist only a bounded, non-content request summary", async ()
     "errorType",
   ]);
   for (const sensitiveKey of ["message", "prompt", "history", "image", "token", "email", "uid", "password"]) {
-    assert.doesNotMatch(writer, new RegExp(`'${sensitiveKey}'\\s*:`i));
+    assert.doesNotMatch(writer, new RegExp(`'${sensitiveKey}'\\s*:`, "i"));
   }
   assert.match(writer, /\.\.\.previous\.take\(49\)/);
   assert.match(source, /static Future<void> clearDiagnostics\(\)/);
