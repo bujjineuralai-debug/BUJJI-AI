@@ -1,6 +1,6 @@
 import { jsonResponse, MAX_MESSAGE_LENGTH, cleanHistory } from "../core/http.js";
 import { detectLanguage, detectTeluguDialect, languageInstruction } from "../services/language.js";
-import { runChatModel } from "../services/chat_provider.js";
+import { runChatModel, SYSTEM_PROMPT } from "../services/chat_provider.js";
 
 export async function handleChatRequest(request, env) {
   if (request.method !== "POST") {
