@@ -72,12 +72,22 @@ function chatRequest(body, headers = { "content-type": "application/json" }) {
   });
 }
 
-test("OPTIONS preflight returns 204", async () => {
+test("OPTIONS preflight allows authenticated Flutter API requests", async () => {
   const response = await worker.fetch(
-    new Request("https://example.test/chat", { method: "OPTIONS" }),
+    new Request("https://example.test/chat", {
+      method: "OPTIONS",
+      headers: {
+        Origin: "https://app.example.test",
+        "Access-Control-Request-Method": "POST",
+        "Access-Control-Request-Headers": "content-type,authorization",
+      },
+    }),
     {},
   );
   assert.equal(response.status, 204);
+  assert.equal(response.headers.get("Access-Control-Allow-Origin"), "*");
+  assert.match(response.headers.get("Access-Control-Allow-Methods") || "", /POST/);
+  assert.match(response.headers.get("Access-Control-Allow-Headers") || "", /Authorization/i);
 });
 
 test("unknown route returns 404", async () => {
