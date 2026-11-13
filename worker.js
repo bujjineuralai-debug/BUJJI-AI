@@ -443,7 +443,10 @@ async function verifyFirebaseIdToken(request, env) {
       !Number.isFinite(claims.exp) ||
       claims.exp <= now ||
       !Number.isFinite(claims.iat) ||
-      claims.iat > now + 60
+      claims.iat > now + 60 ||
+      !Number.isFinite(claims.auth_time) ||
+      claims.auth_time > now ||
+      claims.auth_time > claims.iat
     ) {
       throw new Error("Token claims are invalid or expired.");
     }
