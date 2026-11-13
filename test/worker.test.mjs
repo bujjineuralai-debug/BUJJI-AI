@@ -116,3 +116,56 @@ test("Gemini failure uses the configured Llama fallback", async () => {
   assert.equal(data.reply, "Fallback is working.");
   assert.ok(data.requestId);
 });
+
+test("required rate limiting fails closed when its binding is missing", async () => {
+  const env = envWithAi();
+  env.REQUIRE_RATE_LIMITING = "true";
+  const response = await worker.fetch(
+    chatRequest(JSON.stringify({ message: "hello" })),
+    env,
+  );
+  assert.equal(response.status, 503);
+});
+
+test("chat returns 429 and Retry-After when the Durable Object denies a request", async () => {
+  const env = envWithAi();
+  env.REQUIRE_RATE_LIMITING = "true";
+  env.RATE_LIMITER = {
+    idFromName: (name) => name,
+    get: () => ({
+      fetch: async () => new Response(JSON.stringify({
+        allowed: false,
+        retryAfter: 17,
+      }), { status: 200 }),
+    }),
+  };
+  const response = await worker.fetch(
+    chatRequest(JSON.stringify({ message: "hello" })),
+    env,
+  );
+  assert.equal(response.status, 429);
+  assert.equal(response.headers.get("Retry-After"), "17");
+});
+
+test("Durable Object enforces an atomic fixed-window request limit", async () => {
+  let state;
+  const storage = {
+    transaction: async (callback) => callback({
+      get: async () => state,
+      put: async (_key, value) => { state = value; },
+    }),
+  };
+  const limiter = new worker.RateLimiter({ storage });
+  const call = () => limiter.fetch(new Request("https://rate-limit.internal/check", {
+    method: "POST",
+    headers: { "content-type": "application/json" },
+    body: JSON.stringify({ limit: 2, windowMs: 60_000 }),
+  }));
+
+  assert.equal((await (await call()).json()).allowed, true);
+  assert.equal((await (await call()).json()).allowed, true);
+  const denied = await call();
+  const data = await denied.json();
+  assert.equal(data.allowed, false);
+  assert.ok(data.retryAfter >= 1);
+});
