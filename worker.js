@@ -18,10 +18,7 @@ export default {
       return handleVisionRequest(request, env);
     }
 
-    if (url.pathname === "/") {
-      if (request.method !== "GET") {
-        return jsonResponse({ success: false, error: "Method not allowed." }, 405);
-      }
+    if (url.pathname === "/" && request.method === "GET") {
       return jsonResponse({
         success: true,
         status: "online",
