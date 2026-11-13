@@ -81,6 +81,6 @@ test("CORS source has an explicit origin allowlist and no wildcard grant", async
   const worker = await read("worker.js");
   assert.match(worker, /CORS_ALLOWED_ORIGINS/);
   assert.match(worker, /allowedCorsOrigins/);
-  assert.match(worker, /origins\.includes\(origin\)/);
+  assert.match(worker, /allowedCorsOrigins\(env\)\.includes\(origin\)/);
   assert.doesNotMatch(worker, /Access-Control-Allow-Origin\s*:\s*["']\*["']/i);
 });
