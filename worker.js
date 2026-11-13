@@ -371,6 +371,117 @@ function jsonResponse(data, status = 200, extraHeaders = {}) {
   });
 }
 
+const FIREBASE_JWKS_URL =
+  "https://www.googleapis.com/service_accounts/v1/jwk/securetoken@system.gserviceaccount.com";
+
+function decodeBase64Url(value) {
+  const normalized = value.replace(/-/g, "+").replace(/_/g, "/");
+  const padded = normalized + "=".repeat((4 - (normalized.length % 4)) % 4);
+  const binary = atob(padded);
+  return Uint8Array.from(binary, (character) => character.charCodeAt(0));
+}
+
+function decodeJwtPart(value) {
+  return JSON.parse(new TextDecoder().decode(decodeBase64Url(value)));
+}
+
+async function verifyFirebaseIdToken(request, env) {
+  const required = env?.REQUIRE_FIREBASE_AUTH === "true";
+  const authorization = request.headers.get("Authorization") || "";
+  const match = authorization.match(/^Bearer ([A-Za-z0-9._~-]+)$/);
+  if (!match) {
+    return required
+      ? { ok: false, status: 401, error: "A valid Firebase sign-in is required." }
+      : { ok: true, uid: null };
+  }
+
+  try {
+    const parts = match[1].split(".");
+    if (parts.length !== 3) throw new Error("Malformed token.");
+    const header = decodeJwtPart(parts[0]);
+    const claims = decodeJwtPart(parts[1]);
+    if (header.alg !== "RS256" || typeof header.kid !== "string") {
+      throw new Error("Unsupported token signing algorithm.");
+    }
+
+    const projectId = env?.FIREBASE_PROJECT_ID;
+    if (typeof projectId !== "string" || !projectId.trim()) {
+      throw new Error("Firebase project configuration is missing.");
+    }
+
+    const now = Math.floor(Date.now() / 1000);
+    if (
+      claims.aud !== projectId ||
+      claims.iss !== `https://securetoken.google.com/${projectId}` ||
+      typeof claims.sub !== "string" ||
+      claims.sub.length === 0 ||
+      claims.sub.length > 128 ||
+      !Number.isFinite(claims.exp) ||
+      claims.exp <= now ||
+      !Number.isFinite(claims.iat) ||
+      claims.iat > now + 60
+    ) {
+      throw new Error("Token claims are invalid or expired.");
+    }
+
+    const keyResponse = await fetch(FIREBASE_JWKS_URL, {
+      cf: { cacheTtl: 3600, cacheEverything: true },
+    });
+    if (!keyResponse.ok) throw new Error("Firebase signing keys are unavailable.");
+    const keySet = await keyResponse.json();
+    const jwk = Array.isArray(keySet.keys)
+      ? keySet.keys.find((candidate) =>
+          candidate.kid === header.kid &&
+          candidate.kty === "RSA" &&
+          candidate.use === "sig" &&
+          candidate.alg === "RS256")
+      : null;
+    if (!jwk) throw new Error("Unknown Firebase signing key.");
+
+    const publicKey = await crypto.subtle.importKey(
+      "jwk",
+      jwk,
+      { name: "RSASSA-PKCS1-v1_5", hash: "SHA-256" },
+      false,
+      ["verify"],
+    );
+    const signedContent = new TextEncoder().encode(`${parts[0]}.${parts[1]}`);
+    const valid = await crypto.subtle.verify(
+      "RSASSA-PKCS1-v1_5",
+      publicKey,
+      decodeBase64Url(parts[2]),
+      signedContent,
+    );
+    if (!valid) throw new Error("Invalid Firebase token signature.");
+
+    return { ok: true, uid: claims.sub };
+  } catch (error) {
+    console.warn("BUJJI Firebase authentication rejected:", {
+      reason: error instanceof Error ? error.message : "Invalid token",
+    });
+    return {
+      ok: false,
+      status: 401,
+      error: "Your sign-in session is invalid or expired. Please sign in again.",
+    };
+  }
+}
+
+async function requireFirebaseUser(request, env, requestId) {
+  const result = await verifyFirebaseIdToken(request, env);
+  if (!result.ok) {
+    auditEvent("authentication_rejected", requestId, {
+      status: result.status,
+    });
+    return jsonResponse({
+      success: false,
+      error: result.error,
+      requestId,
+    }, result.status, { "WWW-Authenticate": "Bearer" });
+  }
+  return null;
+}
+
 async function checkRateLimit(env, request, route) {
   const namespace = env?.RATE_LIMITER;
   const required = env?.REQUIRE_RATE_LIMITING === "true";
@@ -779,6 +890,8 @@ export default {
       }
 
       const requestId = crypto.randomUUID();
+      const authResponse = await requireFirebaseUser(request, env, requestId);
+      if (authResponse) return authResponse;
       const rateLimit = await checkRateLimit(env, request, "vision");
       if (!rateLimit.allowed) {
         return jsonResponse({
@@ -956,6 +1069,8 @@ export default {
     }
 
     const requestId = crypto.randomUUID();
+    const authResponse = await requireFirebaseUser(request, env, requestId);
+    if (authResponse) return authResponse;
     const rateLimit = await checkRateLimit(env, request, "chat");
     if (!rateLimit.allowed) {
       return jsonResponse({
