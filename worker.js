@@ -950,7 +950,15 @@ export default {
           }, 400);
         }
 
-        console.log("BUJJI Vision request started:", requestId);
+        auditEvent("vision_request_validated", requestId, {
+          imageLength: image.length,
+          questionLength: question.length,
+        });
+        auditEvent("vision_model_started", requestId, {
+          provider: "Cloudflare AI",
+          model: "@cf/moondream/moondream3.1-9B-A2B",
+          task: "query",
+        });
 
         // Keep reasoning disabled so the model reserves its token budget for
         // the user-facing answer. The query task normally returns { answer }.
@@ -1018,25 +1026,37 @@ export default {
         }
 
         if (!answer) {
-          const detail = `query=${queryShape}; answerType=${queryAnswerType}; answerLength=${queryAnswerLength}; queryFinish=${queryFinishReason}; caption=${captionShape}; captionType=${captionType}; captionLength=${captionLength}; captionFinish=${captionFinishReason}`;
-          console.error("BUJJI Vision returned no query answer or caption:", requestId, detail);
+          auditEvent("vision_model_empty", requestId, {
+            queryAnswerLength,
+            queryFinishReason,
+            captionLength,
+            captionFinishReason,
+          });
           return jsonResponse({
             success: false,
-            error: "AI returned an empty vision result. Diagnostic details are attached.",
-            detail,
+            error: "AI returned an empty vision result.",
             requestId,
           }, 502);
         }
 
-        console.log("BUJJI Vision response successful:", requestId);
+        auditEvent("vision_model_completed", requestId, {
+          provider: "Cloudflare AI",
+          model: "@cf/moondream/moondream3.1-9B-A2B",
+          answerLength: answer.length,
+          usedCaptionFallback: captionShape !== "not-run",
+        });
+        auditEvent("vision_response_sent", requestId, {
+          status: 200,
+          answerLength: answer.length,
+        });
         return jsonResponse({ success: true, answer, requestId });
       } catch (error) {
-        const detail = error instanceof Error ? error.message : String(error);
-        console.error("BUJJI Vision Error:", requestId, error);
+        auditEvent("vision_request_failed", requestId, {
+          errorName: error instanceof Error ? error.name : "UnknownError",
+        });
         return jsonResponse({
           success: false,
           error: "Photo analysis failed.",
-          detail: detail.slice(0, 300),
           requestId,
         }, 502);
       }
