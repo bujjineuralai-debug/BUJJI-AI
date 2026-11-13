@@ -320,14 +320,14 @@ async function runPrimaryModel(env, messages) {
   return reply;
 }
 
-async function runChatModel(env, messages) {
+async function runChatModel(env, messages, requestId) {
   try {
     const reply = await runPrimaryModel(env, messages);
-    console.log("BUJJI AI provider: Gemini");
+    console.log("BUJJI AI provider selected:", requestId, "Gemini");
     return reply;
   } catch (error) {
     const detail = error instanceof Error ? error.message : String(error);
-    console.warn("Gemini unavailable; using Cloudflare Llama fallback:", detail);
+    console.warn("Gemini unavailable; using Cloudflare Llama fallback:", requestId, detail);
 
     if (!env || !env.AI || typeof env.AI.run !== "function") {
       throw new Error("Gemini failed and Cloudflare AI fallback is unavailable.");
@@ -347,7 +347,7 @@ async function runChatModel(env, messages) {
       throw new Error("Both Gemini and Cloudflare Llama returned an empty response.");
     }
 
-    console.log("BUJJI AI provider: Cloudflare Llama fallback");
+    console.log("BUJJI AI provider selected:", requestId, "Cloudflare Llama fallback");
     return reply;
   }
 }
@@ -866,7 +866,7 @@ export default {
       console.log("Detected language:", language);
       if (dialect) console.log("Detected Telugu dialect hint:", dialect);
 
-      const reply = await runChatModel(env, messages);
+      const reply = await runChatModel(env, messages, requestId);
 
       if (!reply) {
         console.error("BUJJI AI returned an empty response:", requestId);
