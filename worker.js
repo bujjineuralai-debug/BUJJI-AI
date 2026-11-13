@@ -629,7 +629,7 @@ async function readJsonBody(request, maxBytes) {
 const ROMAN_TELUGU_WORDS = new Set([
   "nuvvu", "nuvve", "meeru", "nenu", "memu", "manam", "naaku", "naku", "ninnu", "ninne",
   "neeku", "meeku", "vaallu", "vallu", "ela", "yela", "enti", "emiti",
-  "enduku", "endhuku", "ekkada", "eppudu", "unnav", "unnava", "unnaru",
+  "enduku", "endhuku", "ekkada", "eppudu", "unnav", "unnava", "unnaru", "unna",
   "unnanu", "unnam", "unnayi", "unnai", "bagunnava", "bagunnanu", "baagunnava", "baagunnanu", "bagunnaru", "baagunnaru", "baagunna", "bagundi",
   "baagundi", "bagundhi", "avunu", "kaadu", "kadu", "kaadhu", "ledu", "ledhu",
   "undhi", "undi", "cheppu", "cheppandi", "cheppava", "cheyyi", "chey",
