@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'ai_diagnostics_screen.dart';
 
 class AboutBujjiAIScreen extends StatelessWidget {
   const AboutBujjiAIScreen({super.key});
@@ -99,6 +100,38 @@ class AboutBujjiAIScreen extends StatelessWidget {
               child: const Text(
                 'Have an idea, found a problem or want to share your experience? Open Feedback & Suggestions from the Menu. Official contact links will be added here when they are available.',
                 style: TextStyle(color: Colors.white, height: 1.55, fontSize: 13),
+              ),
+            ),
+            _section(
+              icon: Icons.monitor_heart_outlined,
+              title: 'AI Diagnostics',
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  const Text(
+                    'View recent API health, response times and Trace IDs. Diagnostic records are stored locally and exclude prompts, tokens and images.',
+                    style: TextStyle(color: Colors.white, height: 1.5, fontSize: 13),
+                  ),
+                  const SizedBox(height: 12),
+                  SizedBox(
+                    width: double.infinity,
+                    child: OutlinedButton.icon(
+                      onPressed: () {
+                        Navigator.of(context).push(
+                          MaterialPageRoute(
+                            builder: (_) => const AiDiagnosticsScreen(),
+                          ),
+                        );
+                      },
+                      icon: const Icon(Icons.analytics_outlined),
+                      label: const Text('Open Diagnostics Dashboard'),
+                      style: OutlinedButton.styleFrom(
+                        foregroundColor: cyan,
+                        side: BorderSide(color: cyan.withOpacity(0.5)),
+                      ),
+                    ),
+                  ),
+                ],
               ),
             ),
             _section(
