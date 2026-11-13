@@ -280,3 +280,93 @@ test("Firebase authentication rejects expired ID tokens", async () => {
   );
   assert.equal(response.status, 401);
 });
+
+test("Vision route also rejects requests without Firebase authentication", async () => {
+  const env = envWithAi();
+  env.REQUIRE_FIREBASE_AUTH = "true";
+  env.FIREBASE_PROJECT_ID = "bujji-ai-2e2af";
+  const response = await worker.fetch(
+    new Request("https://example.test/vision", { method: "POST" }),
+    env,
+  );
+  assert.equal(response.status, 401);
+});
+
+test("latest message language overrides the language of prior history", async () => {
+  let captured;
+  globalThis.fetch = async (_url, options) => {
+    captured = JSON.parse(options.body);
+    return new Response(JSON.stringify({
+      candidates: [{
+        content: { parts: [{ text: "I am doing well, thank you." }] },
+        finishReason: "STOP",
+      }],
+    }), { status: 200, headers: { "content-type": "application/json" } });
+  };
+
+  const response = await worker.fetch(
+    chatRequest(JSON.stringify({
+      message: "Hello, how are you today?",
+      history: [
+        { role: "user", content: "నమస్కారం గురూ" },
+        { role: "assistant", content: "నమస్కారం!" },
+      ],
+    })),
+    envWithAi(),
+  );
+  assert.equal(response.status, 200);
+  assert.match(
+    captured.systemInstruction.parts[0].text,
+    /detected as English/,
+  );
+  assert.equal(captured.contents[0].parts[0].text, "నమస్కారం గురూ");
+  assert.equal(captured.contents[1].parts[0].text, "నమస్కారం!");
+  assert.equal(captured.contents[2].parts[0].text, "Hello, how are you today?");
+});
+
+test("Roman Telugu, Telugu script and Hindi messages select their reply languages", async (tcase) => {
+  const samples = [
+    { message: "nenu baagunnanu", expected: "detected as Telugu" },
+    { message: "నమస్కారం", expected: "detected as Telugu" },
+    { message: "नमस्ते", expected: "detected as Hindi" },
+    { message: "How are you today?", expected: "detected as English" },
+    { message: "nenu chala happy ga unna", expected: "detected as Telugu" },
+  ];
+
+  for (const sample of samples) {
+    await tcase.test(sample.message, async () => {
+      let systemText = "";
+      globalThis.fetch = async (_url, options) => {
+        systemText = JSON.parse(options.body).systemInstruction.parts[0].text;
+        return new Response(JSON.stringify({
+          candidates: [{
+            content: { parts: [{ text: "Test reply." }] },
+            finishReason: "STOP",
+          }],
+        }), { status: 200, headers: { "content-type": "application/json" } });
+      };
+      const response = await worker.fetch(
+        chatRequest(JSON.stringify({ message: sample.message })),
+        envWithAi(),
+      );
+      assert.equal(response.status, 200);
+      assert.ok(
+        systemText.includes(sample.expected),
+        `Expected ${sample.expected} in language instruction.`,
+      );
+    });
+  }
+});
+
+test("both Gemini and Llama failures return a safe server error", async () => {
+  globalThis.fetch = async () => new Response("upstream unavailable", { status: 503 });
+  const response = await worker.fetch(
+    chatRequest(JSON.stringify({ message: "hello" })),
+    envWithAi(async () => { throw new Error("fallback unavailable"); }),
+  );
+  const data = await response.json();
+  assert.equal(response.status, 500);
+  assert.equal(data.success, false);
+  assert.ok(data.requestId);
+  assert.equal(data.error, "Unable to process your request. Please try again.");
+});
