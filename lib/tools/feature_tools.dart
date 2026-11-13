@@ -56,6 +56,7 @@ class _VisionPageState extends State<_VisionPage> {
   File? photo;
   String answer = '';
   bool busy = false;
+  String? lastRequestId;
 
   void msg(String message) {
     if (!mounted) return;
@@ -130,6 +131,11 @@ class _VisionPageState extends State<_VisionPage> {
 
       if (decoded is! Map<String, dynamic>) {
         throw Exception('సర్వర్ సమాధానం అర్థం కాలేదు.');
+      }
+      final traceId = decoded['requestId']?.toString();
+      if (traceId != null && traceId.isNotEmpty) {
+        lastRequestId = traceId;
+        debugPrint('BUJJI Vision Trace ID: $traceId');
       }
 
       if (response.statusCode < 200 ||
@@ -236,6 +242,14 @@ class _VisionPageState extends State<_VisionPage> {
                 style: const TextStyle(color: Colors.white, height: 1.5),
               ),
             ),
+            if (lastRequestId != null && lastRequestId!.isNotEmpty)
+              Padding(
+                padding: const EdgeInsets.only(top: 8),
+                child: SelectableText(
+                  'Trace ID: $lastRequestId',
+                  style: const TextStyle(color: Colors.white54, fontSize: 11),
+                ),
+              ),
           ],
           const Text(
             'విశ్లేషణ కోసం చిత్రం BUJJI AI సర్వర్‌కు పంపబడుతుంది. ఉచిత పరిమితి ముగిస్తే సేవ తాత్కాలికంగా ఆగవచ్చు.',
