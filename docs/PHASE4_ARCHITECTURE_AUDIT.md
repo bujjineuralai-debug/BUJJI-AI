@@ -41,3 +41,12 @@ Worker operational audit events use Trace IDs and non-content metadata. Vision d
 - Runtime review with native Telugu speakers remains necessary; the prompt is guidance for the model, not a deterministic Telugu spell-checker or a guarantee of perfect orthography.
 - Test end-to-end Trace ID correlation and all supported languages.
 - Removed the unnecessary early Cloudflare AI binding requirement from `/chat`, so Gemini primary can run without that binding. The Llama fallback still checks for `env.AI`, and `/vision` retains its Cloudflare AI binding requirement. A regression test covers Gemini-only configuration.
+
+
+## CORS and privacy notice hardening (2026-11-13)
+
+- Removed the wildcard `Access-Control-Allow-Origin: *` policy. Browser origins are now permitted only when their exact origin is listed in the Worker `CORS_ALLOWED_ORIGINS` environment variable (comma-separated, exact origin values including scheme and port where applicable). Do not use wildcard entries.
+- Requests without an `Origin` header remain available for native clients. Browser preflights from unlisted origins receive HTTP 403. Configure the actual production/staging web origins before enabling browser clients; do not guess origins.
+- The in-app Privacy & Security notice now explains which message/context is sent to configured AI providers, distinguishes Gemini chat primary / Cloudflare fallback / Cloudflare Vision, describes Firebase session tokens, technical request metadata and device-local diagnostic/history controls, and clarifies that local clearing does not delete provider-side or server-side data.
+- Provider retention, training, regional processing and deletion terms must be verified against the then-current Google, Cloudflare and Firebase terms before release. The app notice deliberately makes no unsupported retention guarantee.
+- Validation added for allowlisted/denied CORS preflights and native requests without Origin. Runtime browser and native-device verification remains required.
