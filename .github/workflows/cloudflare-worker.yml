@@ -1,17 +1,13 @@
 name: BUJJI AI Cloudflare Worker Deploy
 
 on:
+  # Production deployment is manual only. Configure required reviewers on
+  # the GitHub "production" environment before enabling this workflow.
   workflow_dispatch:
-  push:
-    branches:
-      - main
-    paths:
-      - 'worker.js'
-      - 'wrangler.jsonc'
-      - '.github/workflows/cloudflare-worker.yml'
 
 jobs:
   deploy:
+    environment: production
     runs-on: ubuntu-latest
 
     steps:
