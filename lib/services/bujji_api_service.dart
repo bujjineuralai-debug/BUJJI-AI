@@ -24,12 +24,22 @@ class BujjiApiService {
     final current = auth.currentUser;
     if (current != null) return current;
 
-    final credential = await auth.signInAnonymously();
-    final user = credential.user;
-    if (user == null) {
-      throw StateError('Unable to establish a secure BUJJI session.');
+    try {
+      final credential = await auth.signInAnonymously();
+      final user = credential.user;
+      if (user == null) {
+        throw StateError('Unable to establish a secure BUJJI session.');
+      }
+      return user;
+    } on FirebaseAuthException catch (error) {
+      if (error.code == 'operation-not-allowed') {
+        throw StateError(
+          'Guest access is not enabled. Please sign in from My Account, '
+          'or enable Anonymous sign-in in Firebase Authentication.',
+        );
+      }
+      rethrow;
     }
-    return user;
   }
 
   static const String _diagnosticsKey = 'bujji_api_diagnostics_v1';
@@ -100,15 +110,16 @@ class BujjiApiService {
     final endpoint = uri.path;
     int? statusCode;
     String? requestId;
-    final user = await _ensureUser();
-    final token = await user.getIdToken();
-    if (token == null || token.isEmpty) {
-      throw StateError('Unable to obtain a Firebase session token. Please sign in again.');
-    }
-
-    final client = HttpClient()
-      ..connectionTimeout = const Duration(seconds: 20);
+    HttpClient? client;
     try {
+      final user = await _ensureUser();
+      final token = await user.getIdToken();
+      if (token == null || token.isEmpty) {
+        throw StateError('Unable to obtain a Firebase session token. Please sign in again.');
+      }
+
+      client = HttpClient()
+        ..connectionTimeout = const Duration(seconds: 20);
       final request = await client
           .postUrl(uri)
           .timeout(const Duration(seconds: 30));
@@ -162,7 +173,7 @@ class BujjiApiService {
       rethrow;
     } finally {
       stopwatch.stop();
-      client.close(force: true);
+      client?.close(force: true);
     }
   }
 }
