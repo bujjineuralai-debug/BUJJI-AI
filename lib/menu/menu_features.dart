@@ -1,10 +1,9 @@
-import 'dart:convert';
 import 'package:flutter/material.dart';
+import '../core/network/bujji_api_client.dart';
 import 'package:flutter/services.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 import 'package:share_plus/share_plus.dart';
 import 'package:speech_to_text/speech_to_text.dart';
-import 'dart:io';
 
 export 'my_account_screen.dart';
 
@@ -83,6 +82,7 @@ class VoiceTranslationScreen extends StatefulWidget {
   State<VoiceTranslationScreen> createState() => _VoiceTranslationScreenState();
 }
 class _VoiceTranslationScreenState extends State<VoiceTranslationScreen> {
+  final BujjiApiClient _apiClient = const BujjiApiClient();
   final _speech = SpeechToText();
   final _input = TextEditingController();
   bool _ready = false, _listening = false, _working = false;
@@ -99,18 +99,20 @@ class _VoiceTranslationScreenState extends State<VoiceTranslationScreen> {
   Future<void> _translate() async {
     final text = _input.text.trim(); if (text.isEmpty || _working) return;
     setState(() { _working = true; _result = ''; });
-    final client = HttpClient()..connectionTimeout = const Duration(seconds: 20);
     try {
-      final req = await client.postUrl(Uri.parse('https://bujji-ai-api.bujji-neural-ai.workers.dev/chat')).timeout(const Duration(seconds: 30));
-      req.headers.contentType = ContentType.json;
-      req.add(utf8.encode(jsonEncode({'message': 'Translate the following text into $_target. Preserve its meaning and tone. Return only the translation:\n$text', 'history': <Map<String,String>>[]})));
-      final response = await req.close().timeout(const Duration(seconds: 60));
-      final body = await utf8.decoder.bind(response).join();
-      final data = jsonDecode(body);
-      if (response.statusCode < 200 || response.statusCode >= 300 || data is! Map || data['success'] != true) throw Exception('Translation service is unavailable.');
-      if (mounted) setState(() => _result = (data['reply'] ?? '').toString());
-    } catch (e) { if (mounted) ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text('Translation failed: $e'))); }
-    finally { client.close(force: true); if (mounted) setState(() => _working = false); }
+      final translated = await _apiClient.sendChat(
+        message: 'Translate the following text into $_target. Preserve its meaning and tone. Return only the translation:\n$text',
+      );
+      if (mounted) setState(() => _result = translated);
+    } catch (e) {
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(content: Text('Translation failed: $e')),
+        );
+      }
+    } finally {
+      if (mounted) setState(() => _working = false);
+    }
   }
   @override
   Widget build(BuildContext context) => _MenuPage(title: 'Voice & Translation', icon: Icons.mic_rounded,
