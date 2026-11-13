@@ -503,3 +503,60 @@ test("Vision falls back to caption when query has no answer", async () => {
   assert.equal(calls, 2);
   assert.equal(data.answer, "A small wooden table.");
 });
+
+
+test("chat audit stages share one Trace ID and never log user content", async () => {
+  const originalLog = console.log;
+  const auditRecords = [];
+  console.log = (...args) => {
+    for (const value of args) {
+      if (typeof value !== "string") continue;
+      try {
+        const parsed = JSON.parse(value);
+        if (parsed?.component === "bujji-worker") auditRecords.push(parsed);
+      } catch {
+        // Provider-selection diagnostics are intentionally not audit JSON.
+      }
+    }
+  };
+
+  const privateMessage = "phase4-private-user-message-must-not-appear-in-audit";
+  try {
+    globalThis.fetch = async () => new Response(JSON.stringify({
+      candidates: [{
+        content: { parts: [{ text: "Trace audit test response." }] },
+        finishReason: "STOP",
+      }],
+    }), { status: 200, headers: { "content-type": "application/json" } });
+
+    const response = await worker.fetch(
+      chatRequest(JSON.stringify({
+        message: privateMessage,
+        history: [{ role: "user", content: "private prior history" }],
+      })),
+      envWithAi(async () => { throw new Error("Fallback should not run"); }),
+    );
+    const data = await response.json();
+
+    assert.equal(response.status, 200);
+    assert.equal(data.success, true);
+    assert.ok(data.requestId);
+
+    const completionEvents = auditRecords.filter((record) =>
+      ["response_ready", "response_sent"].includes(record.event)
+    );
+    assert.deepEqual(
+      completionEvents.map((record) => record.event),
+      ["response_ready", "response_sent"],
+    );
+    assert.ok(completionEvents.every((record) => record.requestId === data.requestId));
+    assert.ok(completionEvents.every((record) => record.component === "bujji-worker"));
+
+    const serializedAudit = JSON.stringify(auditRecords);
+    assert.equal(serializedAudit.includes(privateMessage), false);
+    assert.equal(serializedAudit.includes("private prior history"), false);
+    assert.equal(serializedAudit.includes("Trace audit test response."), false);
+  } finally {
+    console.log = originalLog;
+  }
+});
