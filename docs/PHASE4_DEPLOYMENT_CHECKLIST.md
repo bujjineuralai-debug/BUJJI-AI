@@ -32,6 +32,8 @@ This checklist is for an authorized maintainer. The Phase 4 branch is not a prod
 
 ## Production gate
 
+- The Cloudflare deployment workflow is manual-dispatch only and targets the GitHub `production` environment.
+- In GitHub repository Settings → Environments, configure `production` with required reviewers before running the deployment workflow; the workflow file alone cannot enforce reviewer membership.
 - Require a reviewed pull request and explicit human approval.
 - Back up current Worker configuration and preserve the previous deploy for rollback.
 - Apply Durable Object migration and Firebase provider configuration before enabling mandatory auth/rate limiting.
