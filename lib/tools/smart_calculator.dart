@@ -243,26 +243,24 @@ class _SmartCalculatorState extends State<SmartCalculator> {
   }
 
   Widget _actionButton(String text, VoidCallback onTap) {
-    return Expanded(
-      child: Padding(
-        padding: const EdgeInsets.all(5),
-        child: ElevatedButton(
-          onPressed: onTap,
-          style: ElevatedButton.styleFrom(
-            backgroundColor: _card,
-            foregroundColor: _cyan,
-            padding: const EdgeInsets.symmetric(vertical: 15),
-            shape: RoundedRectangleBorder(
-              borderRadius: BorderRadius.circular(12),
-              side: BorderSide(color: _cyan.withOpacity(0.35)),
-            ),
+    return Padding(
+      padding: const EdgeInsets.all(5),
+      child: ElevatedButton(
+        onPressed: onTap,
+        style: ElevatedButton.styleFrom(
+          backgroundColor: _card,
+          foregroundColor: _cyan,
+          padding: const EdgeInsets.symmetric(vertical: 15),
+          shape: RoundedRectangleBorder(
+            borderRadius: BorderRadius.circular(12),
+            side: BorderSide(color: _cyan.withOpacity(0.35)),
           ),
-          child: Text(
-            text,
-            style: const TextStyle(
-              fontSize: 17,
-              fontWeight: FontWeight.bold,
-            ),
+        ),
+        child: Text(
+          text,
+          style: const TextStyle(
+            fontSize: 17,
+            fontWeight: FontWeight.bold,
           ),
         ),
       ),
@@ -354,7 +352,7 @@ class _SmartCalculatorState extends State<SmartCalculator> {
           ),
         ),
         const SizedBox(height: 8),
-        _actionButton('Clear', _clear),
+        SizedBox(width: double.infinity, child: _actionButton('Clear', _clear)),
       ],
     );
   }
@@ -372,7 +370,7 @@ class _SmartCalculatorState extends State<SmartCalculator> {
             _actionButton('Remove GST', () => _calculateGst(false)),
           ],
         ),
-        _actionButton('Clear', _clear),
+        SizedBox(width: double.infinity, child: _actionButton('Clear', _clear)),
       ],
     );
   }
@@ -386,8 +384,8 @@ class _SmartCalculatorState extends State<SmartCalculator> {
         const SizedBox(height: 16),
         _input('Loan Duration (Months)', _monthsController),
         const SizedBox(height: 18),
-        _actionButton('Calculate EMI', _calculateEmi),
-        _actionButton('Clear', _clear),
+        SizedBox(width: double.infinity, child: _actionButton('Calculate EMI', _calculateEmi)),
+        SizedBox(width: double.infinity, child: _actionButton('Clear', _clear)),
       ],
     );
   }
