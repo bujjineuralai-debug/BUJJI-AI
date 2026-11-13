@@ -26,6 +26,14 @@ test("health endpoint reports the Worker as online", async () => {
   assert.ok(data.model);
 });
 
+test("health endpoint keeps non-GET methods on the not-found path", async () => {
+  const response = await call("/", { method: "POST", body: {} });
+  const data = await response.json();
+
+  assert.equal(response.status, 404);
+  assert.equal(data.success, false);
+});
+
 test("OPTIONS requests return CORS preflight response", async () => {
   const response = await call("/chat", { method: "OPTIONS" });
 
