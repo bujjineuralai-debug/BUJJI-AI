@@ -318,7 +318,6 @@ async function runPrimaryModel(env, messages) {
   }
 
   return reply;
-  return reply;
 }
 
 async function runChatModel(env, messages) {
