@@ -7,7 +7,9 @@
     "binding": "AI"
   },
   "vars": {
-    "REQUIRE_RATE_LIMITING": "true"
+    "REQUIRE_RATE_LIMITING": "true",
+    "REQUIRE_FIREBASE_AUTH": "true",
+    "FIREBASE_PROJECT_ID": "bujji-ai-2e2af"
   },
   "durable_objects": {
     "bindings": [
