@@ -213,14 +213,14 @@ async function runPrimaryModel(env, messages) {
       );
       response = await requestGemini(contents, false);
     } else {
-      console.error("Gemini API request failed:", response.status, errorText.slice(0, 500));
+      console.error("Gemini API request failed:", response.status);
       throw new Error(`Gemini API request failed with status ${response.status}.`);
     }
   }
 
   if (!response.ok) {
     const errorText = await response.text();
-    console.error("Gemini API retry failed:", response.status, errorText.slice(0, 500));
+    console.error("Gemini API retry failed:", response.status);
     throw new Error(`Gemini API request failed with status ${response.status}.`);
   }
 
@@ -284,8 +284,7 @@ async function runPrimaryModel(env, messages) {
       const continuationError = await continuationResponse.text();
       console.error(
         "Gemini continuation failed:",
-        continuationResponse.status,
-        continuationError.slice(0, 500)
+        continuationResponse.status
       );
       break;
     }
