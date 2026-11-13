@@ -117,9 +117,33 @@ class _MyAccountScreenState extends State<MyAccountScreen> {
   }
 
   void _notice(String text) {
-    if (mounted) ScaffoldMessenger.of(context).showSnackBar(
-      SnackBar(content: Text(text), backgroundColor: const Color(0xFF10243B)),
-    );
+    if (!mounted) return;
+    final messenger = ScaffoldMessenger.of(context);
+    messenger
+      ..hideCurrentSnackBar()
+      ..showSnackBar(
+        SnackBar(
+          content: Text(
+            text,
+            style: const TextStyle(
+              color: Colors.white,
+              fontSize: 14,
+              fontWeight: FontWeight.w500,
+            ),
+          ),
+          backgroundColor: const Color(0xFF0B1B2D),
+          behavior: SnackBarBehavior.floating,
+          elevation: 8,
+          duration: const Duration(seconds: 3),
+          dismissDirection: DismissDirection.horizontal,
+          margin: const EdgeInsets.fromLTRB(16, 0, 16, 18),
+          padding: const EdgeInsets.symmetric(horizontal: 18, vertical: 14),
+          shape: RoundedRectangleBorder(
+            borderRadius: BorderRadius.circular(14),
+            side: const BorderSide(color: Color(0xFF25B8FF), width: 1),
+          ),
+        ),
+      );
   }
 
   Future<void> _save() async {
