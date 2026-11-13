@@ -366,8 +366,8 @@ class _SmartCalculatorState extends State<SmartCalculator> {
         const SizedBox(height: 18),
         Row(
           children: [
-            _actionButton('Add GST', () => _calculateGst(true)),
-            _actionButton('Remove GST', () => _calculateGst(false)),
+            Expanded(child: _actionButton('Add GST', () => _calculateGst(true))),
+            Expanded(child: _actionButton('Remove GST', () => _calculateGst(false))),
           ],
         ),
         SizedBox(width: double.infinity, child: _actionButton('Clear', _clear)),
