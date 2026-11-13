@@ -65,7 +65,7 @@ test("vision route rejects non-POST methods", async () => {
   assert.equal(data.success, false);
 });
 
-test("chat route reports a missing AI binding", async () => {
+test("chat route fails safely when neither provider can run", async () => {
   const response = await call("/chat", {
     method: "POST",
     body: { message: "Hello", history: [] },
@@ -76,6 +76,34 @@ test("chat route reports a missing AI binding", async () => {
   assert.equal(response.status, 500);
   assert.equal(data.success, false);
   assert.ok(data.requestId);
+});
+
+test("Gemini primary route does not require the fallback AI binding", async () => {
+  const originalFetch = globalThis.fetch;
+  globalThis.fetch = async () => new Response(JSON.stringify({
+    candidates: [{
+      content: { parts: [{ text: "Primary provider response" }] },
+      finishReason: "STOP",
+    }],
+  }), {
+    status: 200,
+    headers: { "Content-Type": "application/json" },
+  });
+
+  try {
+    const response = await call("/chat", {
+      method: "POST",
+      body: { message: "hello", history: [] },
+      env: { GEMINI_API_KEY: "test-key" },
+    });
+    const data = await response.json();
+
+    assert.equal(response.status, 200);
+    assert.equal(data.success, true);
+    assert.equal(data.reply, "Primary provider response");
+  } finally {
+    globalThis.fetch = originalFetch;
+  }
 });
 
 test("history cleaner accepts only user and assistant messages", () => {
