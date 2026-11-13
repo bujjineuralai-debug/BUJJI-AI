@@ -36,6 +36,6 @@ Worker operational audit events use Trace IDs and non-content metadata. Vision d
 - Complete Flutter analyzer and test workflow.
 - Run staging integration tests against a staging Firebase project and Cloudflare Worker.
 - Verify anonymous provider enablement and credential linking.
-- Test wrong-project, invalid-signature, expired and missing Firebase tokens.
+- Automated Worker tests cover wrong-project, invalid-signature, expired and missing Firebase tokens; repeat these against the staging Firebase project.
 - Test end-to-end Trace ID correlation and all supported languages.
 - Resolve the existing Gemini-primary Cloudflare AI binding dependency last, without removing the AI binding needed by Llama fallback and Vision.
