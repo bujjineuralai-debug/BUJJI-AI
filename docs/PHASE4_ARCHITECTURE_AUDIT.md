@@ -40,4 +40,4 @@ Worker operational audit events use Trace IDs and non-content metadata. Vision d
 - A dedicated Telugu Language Intelligence module now supplies separate grammar, orthography, pronoun, honorific, Romanized Telugu and silent-proofreading guidance to the Worker system prompt. Automated Worker coverage checks that the module is present in the Gemini prompt and includes vowel signs, conjuncts, doubled consonants and respectful-address rules.
 - Runtime review with native Telugu speakers remains necessary; the prompt is guidance for the model, not a deterministic Telugu spell-checker or a guarantee of perfect orthography.
 - Test end-to-end Trace ID correlation and all supported languages.
-- Resolve the existing Gemini-primary Cloudflare AI binding dependency last, without removing the AI binding needed by Llama fallback and Vision.
+- Removed the unnecessary early Cloudflare AI binding requirement from `/chat`, so Gemini primary can run without that binding. The Llama fallback still checks for `env.AI`, and `/vision` retains its Cloudflare AI binding requirement. A regression test covers Gemini-only configuration.

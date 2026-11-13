@@ -1108,16 +1108,6 @@ export default {
     }
 
     try {
-      if (!env || !env.AI || typeof env.AI.run !== "function") {
-        console.error("Cloudflare AI binding is missing:", requestId);
-
-        return jsonResponse({
-          success: false,
-          error: "Cloudflare AI binding is missing.",
-          requestId,
-        }, 500);
-      }
-
       let body;
 
       try {

@@ -175,6 +175,28 @@ test("Gemini success returns a correlated request id", async () => {
   assert.match(data.requestId, /^[0-9a-f-]{36}$/i);
 });
 
+test("Gemini primary works without a Cloudflare AI binding", async () => {
+  globalThis.fetch = async (_url, options) => {
+    const payload = JSON.parse(options.body);
+    assert.ok(payload.contents.length > 0);
+    return new Response(JSON.stringify({
+      candidates: [{
+        content: { parts: [{ text: "Gemini-only configuration works." }] },
+        finishReason: "STOP",
+      }],
+    }), { status: 200, headers: { "content-type": "application/json" } });
+  };
+
+  const response = await worker.fetch(
+    chatRequest(JSON.stringify({ message: "hello" })),
+    { GEMINI_API_KEY: "test-key" },
+  );
+  const data = await response.json();
+  assert.equal(response.status, 200);
+  assert.equal(data.reply, "Gemini-only configuration works.");
+  assert.ok(data.requestId);
+});
+
 test("Gemini failure uses the configured Llama fallback", async () => {
   globalThis.fetch = async () => new Response("temporary upstream failure", { status: 503 });
   let fallbackCalled = false;
