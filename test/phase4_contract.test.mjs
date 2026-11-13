@@ -23,7 +23,7 @@ test("diagnostics persist only a bounded, non-content request summary", async ()
   const end = source.indexOf("static Future<void> clearDiagnostics");
   assert.ok(start >= 0 && end > start, "diagnostic writer must exist");
   const writer = source.slice(start, end);
-  const keys = [...writer.matchAll(/'([A-Za-z]+)'\s*:/g)].map((match) => match[1]);
+  const keys = [...writer.matchAll(/^\s*'([A-Za-z]+)'\s*:/gm)].map((match) => match[1]);
   assert.deepEqual(keys, [
     "endpoint",
     "timestamp",
