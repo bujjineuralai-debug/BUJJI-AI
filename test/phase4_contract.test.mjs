@@ -31,8 +31,9 @@ test("diagnostics persist only a bounded, non-content request summary", async ()
     "statusCode",
     "requestId",
     "outcome",
-    "errorType",
   ]);
+  // errorType is deliberately written as a conditional map entry.
+  assert.match(writer, /if\\s*\\(errorType\\s*!=\\s*null\\)\\s*'errorType'\\s*:\\s*errorType/);
   for (const sensitiveKey of ["message", "prompt", "history", "image", "token", "email", "uid", "password"]) {
     assert.doesNotMatch(writer, new RegExp(`'${sensitiveKey}'\\s*:`, "i"));
   }
