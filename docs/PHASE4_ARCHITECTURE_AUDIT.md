@@ -50,3 +50,9 @@ Worker operational audit events use Trace IDs and non-content metadata. Vision d
 - The in-app Privacy & Security notice now explains which message/context is sent to configured AI providers, distinguishes Gemini chat primary / Cloudflare fallback / Cloudflare Vision, describes Firebase session tokens, technical request metadata and device-local diagnostic/history controls, and clarifies that local clearing does not delete provider-side or server-side data.
 - Provider retention, training, regional processing and deletion terms must be verified against the then-current Google, Cloudflare and Firebase terms before release. The app notice deliberately makes no unsupported retention guarantee.
 - Validation added for allowlisted/denied CORS preflights and native requests without Origin. Runtime browser and native-device verification remains required.
+
+## Automated validation expansion (2026-11-13)
+
+- Added `test/phase4_contract.test.mjs` to verify source-level contracts for bounded local chat history (100 messages), diagnostics retention/redaction (50 entries and an explicit metadata-only key set), Trace ID propagation, Privacy Notice disclosures, required Firebase authentication/rate limiting configuration, and explicit CORS origin allowlisting.
+- Updated the Phase 4 GitHub Actions workflow to run every Node test file with `node --test test/*.test.mjs`, alongside Worker syntax validation, Flutter analysis and Flutter tests.
+- These contract checks are automated source/configuration guards. They do not prove Android runtime behavior, real Firebase token issuance, deployed Cloudflare bindings, browser preflight behavior against a live deployment, provider retention practices, or native-speaker Telugu quality. Those remain staging/device/provider/human validation items.
