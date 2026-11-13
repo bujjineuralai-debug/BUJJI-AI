@@ -1525,44 +1525,19 @@ dates, addresses, or contact details. Use clear placeholders such as
       if (!regenerate) outputController.clear();
     });
 
-    final client = HttpClient();
-    client.connectionTimeout = const Duration(seconds: 20);
-
     try {
-      final request = await client
-          .postUrl(Uri.parse(apiUrl))
-          .timeout(const Duration(seconds: 30));
-      request.headers.contentType = ContentType.json;
-      request.headers.set(HttpHeaders.acceptHeader, 'application/json');
-      request.add(utf8.encode(jsonEncode({
-        'message': prompt,
-        'history': <Map<String, String>>[],
-      })));
-
-      final response = await request.close().timeout(
-        const Duration(seconds: 60),
+      final apiResponse = await BujjiApiService.postJson(
+        Uri.parse(apiUrl),
+        {'message': prompt, 'history': <Map<String, String>>[]},
       );
-      final body = await utf8.decoder.bind(response).join().timeout(
-        const Duration(seconds: 30),
-      );
-
-      dynamic decoded;
-      try {
-        decoded = jsonDecode(body);
-      } catch (_) {
-        throw Exception('Server returned an invalid response.');
-      }
-
-      if (decoded is! Map<String, dynamic> ||
-          response.statusCode < 200 ||
-          response.statusCode >= 300 ||
+      final decoded = apiResponse.data;
+      if (apiResponse.statusCode < 200 ||
+          apiResponse.statusCode >= 300 ||
           decoded['success'] != true) {
         throw Exception(
-          decoded is Map
-              ? (decoded['error']?.toString() ??
-                  decoded['message']?.toString() ??
-                  'Unable to generate the draft.')
-              : 'Unable to generate the draft.',
+          decoded['error']?.toString() ??
+              decoded['message']?.toString() ??
+              'Unable to generate the draft.',
         );
       }
 
@@ -1942,24 +1917,22 @@ Return only the result, without explaining these instructions.
       isGenerating = true;
       if (!regenerate) outputController.clear();
     });
-    final client = HttpClient();
-    client.connectionTimeout = const Duration(seconds: 20);
     try {
-      final request = await client.postUrl(Uri.parse(apiUrl)).timeout(const Duration(seconds: 30));
-      request.headers.contentType = ContentType.json;
-      request.headers.set(HttpHeaders.acceptHeader, 'application/json');
-      request.add(utf8.encode(jsonEncode({'message': prompt, 'history': <Map<String, String>>[]})));
-      final response = await request.close().timeout(const Duration(seconds: 60));
-      final body = await utf8.decoder.bind(response).join().timeout(const Duration(seconds: 30));
-      dynamic decoded;
-      try {
-        decoded = jsonDecode(body);
-      } catch (_) {
-        throw Exception('Server returned an invalid response.');
+      final apiResponse = await BujjiApiService.postJson(
+        Uri.parse(apiUrl),
+        {'message': prompt, 'history': <Map<String, String>>[]},
+      );
+      final decoded = apiResponse.data;
+      if (apiResponse.statusCode < 200 ||
+          apiResponse.statusCode >= 300 ||
+          decoded['success'] != true) {
+        throw Exception(
+          decoded['error']?.toString() ??
+              decoded['message']?.toString() ??
+              'Unable to generate content.',
+        );
       }
-      if (decoded is! Map<String, dynamic> || response.statusCode < 200 || response.statusCode >= 300 || decoded['success'] != true) {
-        throw Exception(decoded is Map ? (decoded['error']?.toString() ?? decoded['message']?.toString() ?? 'Unable to generate content.') : 'Unable to generate content.');
-      }
+
       final result = decoded['reply']?.toString().trim() ?? '';
       if (result.isEmpty) throw Exception('BUJJI AI returned an empty result.');
       if (!mounted) return;
@@ -1967,7 +1940,6 @@ Return only the result, without explaining these instructions.
     } catch (error) {
       if (mounted) showNotice('Generation failed: $error');
     } finally {
-      client.close(force: true);
       if (mounted) setState(() => isGenerating = false);
     }
   }
