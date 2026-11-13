@@ -453,6 +453,16 @@ export class RateLimiter {
   }
 }
 
+function auditEvent(event, requestId, metadata = {}) {
+  // Only pass non-sensitive operational metadata; never log prompts, history, tokens or image bytes.
+  console.log(JSON.stringify({
+    component: "bujji-worker",
+    event,
+    requestId,
+    ...metadata,
+  }));
+}
+
 async function readJsonBody(request, maxBytes) {
   const contentType = request.headers.get("content-type") || "";
   if (!contentType.toLowerCase().includes("application/json")) {
@@ -1015,6 +1025,14 @@ export default {
       const history = cleanHistory(body.history);
       const language = detectLanguage(message);
       const dialect = language === "Telugu" ? detectTeluguDialect(message) : null;
+      auditEvent("request_validated", requestId, {
+        messageLength: message.length,
+        historyCount: history.length,
+      });
+      auditEvent("language_detected", requestId, {
+        language,
+        dialect: dialect || "none",
+      });
 
       const messages = [
         {
@@ -1032,10 +1050,7 @@ export default {
         },
       ];
 
-      console.log("BUJJI AI request started:", requestId);
-      console.log("Detected language:", language);
-      if (dialect) console.log("Detected Telugu dialect hint:", dialect);
-
+      auditEvent("model_started", requestId, { provider: "Gemini-primary" });
       const reply = await runChatModel(env, messages, requestId);
 
       if (!reply) {
@@ -1048,7 +1063,8 @@ export default {
         }, 502);
       }
 
-      console.log("BUJJI AI response successful:", requestId);
+      auditEvent("response_ready", requestId, { replyLength: reply.length });
+      auditEvent("response_sent", requestId, { status: 200 });
 
       return jsonResponse({
         success: true,
@@ -1057,7 +1073,9 @@ export default {
         requestId,
       });
     } catch (error) {
-      console.error("BUJJI AI Error:", requestId, error);
+      auditEvent("request_failed", requestId, {
+        errorName: error instanceof Error ? error.name : "UnknownError",
+      });
 
       return jsonResponse({
         success: false,
