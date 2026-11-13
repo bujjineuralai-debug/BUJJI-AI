@@ -1,9 +1,10 @@
 
 import 'dart:async';
-import 'dart:convert';
 import 'dart:io';
 
 import 'package:flutter/material.dart';
+import 'core/network/bujji_api_client.dart';
+import 'features/chat/models/chat_message.dart';
 import 'package:flutter/services.dart';
 import 'package:firebase_core/firebase_core.dart';
 import 'firebase_options.dart';
@@ -194,23 +195,6 @@ class _BujjiStartupScreenState extends State<BujjiStartupScreen> {
   }
 }
 
-class ChatMessage {
-  final String role;
-  final String content;
-
-  const ChatMessage({
-    required this.role,
-    required this.content,
-  });
-
-  Map<String, String> toJson() {
-    return {
-      'role': role,
-      'content': content,
-    };
-  }
-}
-
 class BujjiHomeScreen extends StatefulWidget {
   const BujjiHomeScreen({super.key});
 
@@ -222,9 +206,7 @@ class BujjiHomeScreen extends StatefulWidget {
 enum BujjiMode { smartAuto, onlineAI, offline }
 
 class _BujjiHomeScreenState extends State<BujjiHomeScreen> {
-  static const String apiUrl =
-      'https://bujji-ai-api.bujji-neural-ai.workers.dev/chat';
-
+  final BujjiApiClient apiClient = const BujjiApiClient();
   int selectedIndex = 0;
   bool isLoading = false;
   BujjiMode selectedMode = BujjiMode.smartAuto;
@@ -486,52 +468,12 @@ class _BujjiHomeScreenState extends State<BujjiHomeScreen> {
       return;
     }
 
-    final HttpClient client = HttpClient();
-    client.connectionTimeout = const Duration(seconds: 20);
-
     try {
-      final Uri uri = Uri.parse(apiUrl);
-      final HttpClientRequest request =
-          await client.postUrl(uri).timeout(const Duration(seconds: 30));
-      request.headers.contentType = ContentType.json;
-      request.headers.set(HttpHeaders.acceptHeader, 'application/json');
-      request.add(utf8.encode(jsonEncode({
-        'message': message,
-        'history': history,
-      })));
-
-      final HttpClientResponse response =
-          await request.close().timeout(const Duration(seconds: 60));
-      final String responseBody =
-          await utf8.decoder.bind(response).join().timeout(
-                const Duration(seconds: 30),
-              );
-
-      dynamic decoded;
-      try {
-        decoded = jsonDecode(responseBody);
-      } catch (_) {
-        throw Exception(
-          'HTTP ${response.statusCode}: Invalid JSON response.',
-        );
-      }
-
-      if (decoded is! Map<String, dynamic>) {
-        throw Exception('HTTP ${response.statusCode}: Invalid server response.');
-      }
-      if (response.statusCode < 200 ||
-          response.statusCode >= 300 ||
-          decoded['success'] != true) {
-        final String serverError = decoded['error']?.toString() ??
-            decoded['message']?.toString() ?? 'Unknown server error';
-        throw Exception('HTTP ${response.statusCode}: $serverError');
-      }
-
-      final String reply = decoded['reply']?.toString() ?? '';
-      if (reply.trim().isEmpty) {
-        throw Exception('AI returned an empty response.');
-      }
-      addAssistantReply(reply.trim());
+      final reply = await apiClient.sendChat(
+        message: message,
+        history: history,
+      );
+      addAssistantReply(reply);
     } on SocketException catch (error) {
       if (selectedMode == BujjiMode.smartAuto) {
         addAssistantReply(getOfflineReply(message));
@@ -559,7 +501,6 @@ class _BujjiHomeScreenState extends State<BujjiHomeScreen> {
           : errorDetails;
       showMessage('BUJJI AI error: $visibleError');
     } finally {
-      client.close(force: true);
       if (mounted) {
         setState(() => isLoading = false);
         scrollToBottom();
@@ -1396,9 +1337,7 @@ class WritingAssistantScreen extends StatefulWidget {
 }
 
 class _WritingAssistantScreenState extends State<WritingAssistantScreen> {
-  static const String apiUrl =
-      'https://bujji-ai-api.bujji-neural-ai.workers.dev/chat';
-
+  final BujjiApiClient apiClient = const BujjiApiClient();
   static const List<String> writingTypes = [
     'Job Application Letter',
     'Leave Letter',
@@ -1471,49 +1410,8 @@ dates, addresses, or contact details. Use clear placeholders such as
       if (!regenerate) outputController.clear();
     });
 
-    final client = HttpClient();
-    client.connectionTimeout = const Duration(seconds: 20);
-
     try {
-      final request = await client
-          .postUrl(Uri.parse(apiUrl))
-          .timeout(const Duration(seconds: 30));
-      request.headers.contentType = ContentType.json;
-      request.headers.set(HttpHeaders.acceptHeader, 'application/json');
-      request.add(utf8.encode(jsonEncode({
-        'message': prompt,
-        'history': <Map<String, String>>[],
-      })));
-
-      final response = await request.close().timeout(
-        const Duration(seconds: 60),
-      );
-      final body = await utf8.decoder.bind(response).join().timeout(
-        const Duration(seconds: 30),
-      );
-
-      dynamic decoded;
-      try {
-        decoded = jsonDecode(body);
-      } catch (_) {
-        throw Exception('Server returned an invalid response.');
-      }
-
-      if (decoded is! Map<String, dynamic> ||
-          response.statusCode < 200 ||
-          response.statusCode >= 300 ||
-          decoded['success'] != true) {
-        throw Exception(
-          decoded is Map
-              ? (decoded['error']?.toString() ??
-                  decoded['message']?.toString() ??
-                  'Unable to generate the draft.')
-              : 'Unable to generate the draft.',
-        );
-      }
-
-      final result = decoded['reply']?.toString().trim() ?? '';
-      if (result.isEmpty) throw Exception('BUJJI AI returned an empty draft.');
+      final result = await apiClient.sendChat(message: prompt);
 
       if (!mounted) return;
       setState(() {
@@ -1522,7 +1420,6 @@ dates, addresses, or contact details. Use clear placeholders such as
     } catch (error) {
       if (mounted) showNotice('Generation failed: $error');
     } finally {
-      client.close(force: true);
       if (mounted) setState(() => isGenerating = false);
     }
   }
@@ -1794,7 +1691,7 @@ class FeatureAssistantScreen extends StatefulWidget {
 }
 
 class _FeatureAssistantScreenState extends State<FeatureAssistantScreen> {
-  static const String apiUrl = 'https://bujji-ai-api.bujji-neural-ai.workers.dev/chat';
+  final BujjiApiClient apiClient = const BujjiApiClient();
   final TextEditingController detailsController = TextEditingController();
   final TextEditingController outputController = TextEditingController();
   static const List<String> languages = ['Telugu', 'English', 'Hindi'];
@@ -1888,26 +1785,8 @@ Return only the result, without explaining these instructions.
       isGenerating = true;
       if (!regenerate) outputController.clear();
     });
-    final client = HttpClient();
-    client.connectionTimeout = const Duration(seconds: 20);
     try {
-      final request = await client.postUrl(Uri.parse(apiUrl)).timeout(const Duration(seconds: 30));
-      request.headers.contentType = ContentType.json;
-      request.headers.set(HttpHeaders.acceptHeader, 'application/json');
-      request.add(utf8.encode(jsonEncode({'message': prompt, 'history': <Map<String, String>>[]})));
-      final response = await request.close().timeout(const Duration(seconds: 60));
-      final body = await utf8.decoder.bind(response).join().timeout(const Duration(seconds: 30));
-      dynamic decoded;
-      try {
-        decoded = jsonDecode(body);
-      } catch (_) {
-        throw Exception('Server returned an invalid response.');
-      }
-      if (decoded is! Map<String, dynamic> || response.statusCode < 200 || response.statusCode >= 300 || decoded['success'] != true) {
-        throw Exception(decoded is Map ? (decoded['error']?.toString() ?? decoded['message']?.toString() ?? 'Unable to generate content.') : 'Unable to generate content.');
-      }
-      final result = decoded['reply']?.toString().trim() ?? '';
-      if (result.isEmpty) throw Exception('BUJJI AI returned an empty result.');
+      final result = await apiClient.sendChat(message: prompt);
       if (!mounted) return;
       setState(() => outputController.text = result);
     } catch (error) {
