@@ -1,0 +1,47 @@
+name: BUJJI AI Phase 4 Validation
+
+on:
+  push:
+    branches:
+      - 'phase4/**'
+  pull_request:
+    branches:
+      - main
+
+permissions:
+  contents: read
+
+concurrency:
+  group: phase4-validation-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  worker-syntax:
+    name: Cloudflare Worker syntax
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+      - name: Check Worker module syntax
+        run: node --input-type=module --check < worker.js
+
+  flutter-validation:
+    name: Flutter analyze and tests
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+      - name: Setup Flutter
+        uses: subosito/flutter-action@v2
+        with:
+          channel: stable
+      - name: Install dependencies
+        run: flutter pub get
+      - name: Analyze
+        run: flutter analyze
+      - name: Run tests
+        run: flutter test
