@@ -333,6 +333,42 @@ test("Firebase authentication rejects expired ID tokens", async () => {
   const { token } = await makeFirebaseToken("bujji-ai-2e2af", {
     iat: now - 7200,
     exp: now - 3600,
+    auth_time: now - 7200,
+  });
+  const env = envWithAi();
+  env.REQUIRE_FIREBASE_AUTH = "true";
+  env.FIREBASE_PROJECT_ID = "bujji-ai-2e2af";
+  const response = await worker.fetch(
+    chatRequest(JSON.stringify({ message: "hello" }), {
+      "content-type": "application/json",
+      authorization: `Bearer ${token}`,
+    }),
+    env,
+  );
+  assert.equal(response.status, 401);
+});
+
+test("Firebase authentication rejects ID tokens missing auth_time", async () => {
+  const { token } = await makeFirebaseToken("bujji-ai-2e2af", {
+    auth_time: undefined,
+  });
+  const env = envWithAi();
+  env.REQUIRE_FIREBASE_AUTH = "true";
+  env.FIREBASE_PROJECT_ID = "bujji-ai-2e2af";
+  const response = await worker.fetch(
+    chatRequest(JSON.stringify({ message: "hello" }), {
+      "content-type": "application/json",
+      authorization: `Bearer ${token}`,
+    }),
+    env,
+  );
+  assert.equal(response.status, 401);
+});
+
+test("Firebase authentication rejects future auth_time claims", async () => {
+  const now = Math.floor(Date.now() / 1000);
+  const { token } = await makeFirebaseToken("bujji-ai-2e2af", {
+    auth_time: now + 120,
   });
   const env = envWithAi();
   env.REQUIRE_FIREBASE_AUTH = "true";
