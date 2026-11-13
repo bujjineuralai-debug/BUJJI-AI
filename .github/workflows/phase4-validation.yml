@@ -28,6 +28,8 @@ jobs:
           node-version: '22'
       - name: Check Worker module syntax
         run: node --input-type=module --check < worker.js
+      - name: Run Worker request and fallback tests
+        run: node --test test/worker.test.mjs
 
   flutter-validation:
     name: Flutter analyze and tests
