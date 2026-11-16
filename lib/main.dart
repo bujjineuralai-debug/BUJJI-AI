@@ -20,6 +20,7 @@ import 'menu/help_support.dart';
 import 'menu/privacy_security.dart';
 import 'menu/menu_features.dart';
 import 'services/bujji_api_service.dart';
+import 'services/bujji_user_profile_service.dart';
 
 Future<void> main() async {
   WidgetsFlutterBinding.ensureInitialized();
@@ -553,9 +554,12 @@ class _BujjiHomeScreenState extends State<BujjiHomeScreen> {
     }
 
     try {
+      final profile = await BujjiUserProfileService.forConversation(
+        firstAssistantMessage: !history.any((item) => item.role == 'assistant'),
+      );
       final apiResponse = await BujjiApiService.postJson(
         Uri.parse(apiUrl),
-        {'message': message, 'history': history},
+        {'message': message, 'history': history, 'profile': profile},
       );
       final int statusCode = apiResponse.statusCode;
       final Map<String, dynamic> decoded = apiResponse.data;
