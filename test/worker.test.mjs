@@ -7,13 +7,22 @@ const languageModuleSource = await readFile(
   new URL("../telugu_language_intelligence.js", import.meta.url),
   "utf8",
 );
+const grammarModuleSource = await readFile(
+  new URL("../telugu_grammar_intelligence.js", import.meta.url),
+  "utf8",
+);
 const { TELUGU_LANGUAGE_INTELLIGENCE_PROMPT } = await import(
   `data:text/javascript;base64,${Buffer.from(languageModuleSource).toString("base64")}`
 );
-const executableSource = source.replace(
-  'import { TELUGU_LANGUAGE_INTELLIGENCE_PROMPT } from "./telugu_language_intelligence.js";',
-  `const TELUGU_LANGUAGE_INTELLIGENCE_PROMPT = ${JSON.stringify(TELUGU_LANGUAGE_INTELLIGENCE_PROMPT)};`,
-);
+const executableSource = source
+  .replace(
+    'import { TELUGU_LANGUAGE_INTELLIGENCE_PROMPT } from "./telugu_language_intelligence.js";',
+    `const TELUGU_LANGUAGE_INTELLIGENCE_PROMPT = ${JSON.stringify(TELUGU_LANGUAGE_INTELLIGENCE_PROMPT)};`,
+  )
+  .replace(
+    'import { TELUGU_GRAMMAR_INTELLIGENCE_PROMPT } from "./telugu_grammar_intelligence.js";',
+    grammarModuleSource,
+  );
 const { default: worker, RateLimiter } = await import(
   `data:text/javascript;base64,${Buffer.from(executableSource).toString("base64")}`
 );
