@@ -96,3 +96,11 @@ test("Voice Translation uses the shared authenticated Worker transport", async (
   assert.doesNotMatch(source, /HttpClient\s*\(/);
   assert.doesNotMatch(source, /postUrl\s*\(/);
 });
+
+test("optional DOB can be removed from the user's Firestore profile", async () => {
+  const profile = await read("lib/menu/my_account_screen.dart");
+  assert.match(profile, /clearDateOfBirth\s*=\s*false/);
+  assert.match(profile, /FieldValue\.delete\(\)/);
+  assert.match(profile, /tooltip:\s*'Clear date of birth'/);
+  assert.match(profile, /clearDateOfBirth:\s*_dateOfBirth == null/);
+});
