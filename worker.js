@@ -1237,9 +1237,14 @@ async function handleRequest(request, env) {
         dialect: dialect || "none",
       });
 
+      // The client tracks the complete local conversation; the Worker history
+      // is intentionally truncated, so prefer the validated boolean when supplied.
+      const firstAssistantMessage = typeof body.profile?.firstAssistantMessage === "boolean"
+        ? body.profile.firstAssistantMessage
+        : !history.some((item) => item.role === "assistant");
       const profileContext = userProfileInstruction(
         body.profile,
-        !history.some((item) => item.role === "assistant"),
+        firstAssistantMessage,
       );
       const messages = [
         {
