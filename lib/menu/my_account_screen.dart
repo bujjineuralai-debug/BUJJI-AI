@@ -31,7 +31,13 @@ String _authError(FirebaseAuthException e) {
   }
 }
 
-Future<void> _saveCloudProfile(User user, {String? name, DateTime? dateOfBirth, String? preferredAddress}) async {
+Future<void> _saveCloudProfile(
+  User user, {
+  String? name,
+  DateTime? dateOfBirth,
+  String? preferredAddress,
+  bool clearDateOfBirth = false,
+}) async {
   final ref = FirebaseFirestore.instance.collection('users').doc(user.uid);
   final old = await ref.get();
   final displayName = (name?.trim().isNotEmpty ?? false)
@@ -48,7 +54,13 @@ Future<void> _saveCloudProfile(User user, {String? name, DateTime? dateOfBirth, 
   };
   if (displayName.isNotEmpty) data['displayName'] = displayName;
   if (dateOfBirth != null) {
-    data['dateOfBirth'] = DateTime(dateOfBirth.year, dateOfBirth.month, dateOfBirth.day).toIso8601String().split('T').first;
+    data['dateOfBirth'] = DateTime(
+      dateOfBirth.year,
+      dateOfBirth.month,
+      dateOfBirth.day,
+    ).toIso8601String().split('T').first;
+  } else if (clearDateOfBirth) {
+    data['dateOfBirth'] = FieldValue.delete();
   }
   if (preferredAddress != null && {'auto', 'respectful', 'casual'}.contains(preferredAddress)) {
     data['preferredAddress'] = preferredAddress;
@@ -176,7 +188,13 @@ class _MyAccountScreenState extends State<MyAccountScreen> {
         );
       } else {
         await user.updateDisplayName(name);
-        await _saveCloudProfile(user, name: name, dateOfBirth: _dateOfBirth, preferredAddress: _preferredAddress);
+        await _saveCloudProfile(
+          user,
+          name: name,
+          dateOfBirth: _dateOfBirth,
+          preferredAddress: _preferredAddress,
+          clearDateOfBirth: _dateOfBirth == null,
+        );
         _notice('Profile saved on this device and Firebase.');
       }
       await _refresh();
@@ -321,7 +339,18 @@ class _MyAccountScreenState extends State<MyAccountScreen> {
                       : '${_dateOfBirth!.day.toString().padLeft(2, '0')}/${_dateOfBirth!.month.toString().padLeft(2, '0')}/${_dateOfBirth!.year}',
                   style: const TextStyle(color: _muted, fontSize: 12),
                 ),
-                trailing: const Icon(Icons.calendar_month, color: _muted),
+                trailing: Row(
+                  mainAxisSize: MainAxisSize.min,
+                  children: [
+                    if (_dateOfBirth != null)
+                      IconButton(
+                        tooltip: 'Clear date of birth',
+                        onPressed: () => setState(() => _dateOfBirth = null),
+                        icon: const Icon(Icons.delete_outline, color: _muted),
+                      ),
+                    const Icon(Icons.calendar_month, color: _muted),
+                  ],
+                ),
                 onTap: _pickDateOfBirth,
               ),
             ),
