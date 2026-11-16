@@ -1,0 +1,55 @@
+
+name: BUJJI AI Phase 4 Test APK
+
+on:
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  build-test-apk:
+    name: Build Phase 4 Debug APK
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout Phase 4 Branch
+        uses: actions/checkout@v4
+        with:
+          ref: phase4/stage1-stage2-implementation-2026-11-16
+
+      - name: Setup Java 21
+        uses: actions/setup-java@v4
+        with:
+          distribution: temurin
+          java-version: '21'
+
+      - name: Setup Flutter
+        uses: subosito/flutter-action@v2
+        with:
+          channel: stable
+          cache: true
+
+      - name: Flutter Version
+        run: flutter --version
+
+      - name: Install Dependencies
+        run: flutter pub get
+
+      - name: Flutter Analyze
+        run: flutter analyze
+
+      - name: Run Flutter Tests
+        run: flutter test
+
+      - name: Build Debug APK
+        run: flutter build apk --debug
+
+      - name: Upload Phase 4 Test APK
+        uses: actions/upload-artifact@v4
+        with:
+          name: BUJJI-AI-PHASE4-TEST-APK
+          path: build/app/outputs/flutter-apk/app-debug.apk
+          if-no-files-found: error
+          retention-days: 7
+          
