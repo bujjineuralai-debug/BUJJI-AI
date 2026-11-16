@@ -22,7 +22,14 @@
   "migrations": [
     {
       "tag": "v1",
-      "new_sqlite_classes": ["RateLimiter"]
+      "new_sqlite_classes": [
+        "RateLimiter"
+      ]
     }
-  ]
+  ],
+  "previews": {
+    "ai": {
+      "binding": "AI"
+    }
+  }
 }
