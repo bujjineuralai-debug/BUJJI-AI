@@ -555,7 +555,7 @@ class _BujjiHomeScreenState extends State<BujjiHomeScreen> {
 
     try {
       final profile = await BujjiUserProfileService.forConversation(
-        firstAssistantMessage: !history.any((item) => item.role == 'assistant'),
+        firstAssistantMessage: !history.any((item) => item['role'] == 'assistant'),
       );
       final apiResponse = await BujjiApiService.postJson(
         Uri.parse(apiUrl),
