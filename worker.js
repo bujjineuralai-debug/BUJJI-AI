@@ -1,4 +1,5 @@
 import { TELUGU_LANGUAGE_INTELLIGENCE_PROMPT } from "./telugu_language_intelligence.js";
+import { TELUGU_GRAMMAR_INTELLIGENCE_PROMPT } from "./telugu_grammar_intelligence.js";
 
 const SYSTEM_PROMPT = `
 You are BUJJI AI, a friendly, intelligent and reliable personal AI assistant.
@@ -160,6 +161,7 @@ IDENTITY AND OWNERSHIP:
 
 
 ${TELUGU_LANGUAGE_INTELLIGENCE_PROMPT}
+${TELUGU_GRAMMAR_INTELLIGENCE_PROMPT}
 `;
 
 const MODEL = "gemini-3.8-flash";
@@ -506,10 +508,10 @@ async function requireFirebaseUser(request, env, requestId) {
       requestId,
     }, result.status, { "WWW-Authenticate": "Bearer" });
   }
-  return null;
+  return { uid: result.uid };
 }
 
-async function checkRateLimit(env, request, route) {
+async function checkRateLimit(env, request, route, uid = null) {
   const namespace = env?.RATE_LIMITER;
   const required = env?.REQUIRE_RATE_LIMITING === "true";
   if (!namespace) {
@@ -520,19 +522,29 @@ async function checkRateLimit(env, request, route) {
 
   try {
     const ip = request.headers.get("CF-Connecting-IP") || "unknown";
-    const id = namespace.idFromName(`${route}:${ip}`);
-    const stub = namespace.get(id);
-    const limit = route === "vision" ? 10 : 30;
-    const response = await stub.fetch("https://rate-limit.internal/check", {
-      method: "POST",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ limit, windowMs: 60_000 }),
-    });
-    if (!response.ok) throw new Error("Rate limiter returned a non-success status.");
-    const result = await response.json();
-    return result.allowed
-      ? { allowed: true }
-      : { allowed: false, status: 429, retryAfter: result.retryAfter || 60 };
+    const userLimit = route === "vision" ? 10 : 30;
+    const buckets = uid
+      ? [
+          { key: `${route}:user:${uid}`, limit: userLimit },
+          { key: `${route}:ip:${ip}`, limit: userLimit * 3 },
+        ]
+      : [{ key: `${route}:ip:${ip}`, limit: userLimit }];
+
+    for (const bucket of buckets) {
+      const id = namespace.idFromName(bucket.key);
+      const stub = namespace.get(id);
+      const response = await stub.fetch("https://rate-limit.internal/check", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ limit: bucket.limit, windowMs: 60_000 }),
+      });
+      if (!response.ok) throw new Error("Rate limiter returned a non-success status.");
+      const result = await response.json();
+      if (!result.allowed) {
+        return { allowed: false, status: 429, retryAfter: result.retryAfter || 60 };
+      }
+    }
+    return { allowed: true };
   } catch (error) {
     console.error("BUJJI rate limiter unavailable:", route, error);
     return { allowed: false, status: 503, error: "Request protection is temporarily unavailable." };
@@ -900,6 +912,37 @@ function languageInstruction(language, dialect = null) {
   return `IMPORTANT: The latest user message has been detected as ${language}. ${replyStyle} Reply entirely in ${language}, unless the user explicitly asks for translation or another language. Do not follow the language used in older messages when it conflicts with the latest message.${dialectGuidance}`;
 }
 
+function userProfileInstruction(profile, firstAssistantMessage) {
+  if (!profile || typeof profile !== "object" || Array.isArray(profile)) return null;
+  const ageBands = new Set(["child", "teen", "young_adult", "adult", "senior"]);
+  const ageBand = ageBands.has(profile.ageBand) ? profile.ageBand : null;
+  const preferences = new Set(["auto", "respectful", "casual"]);
+  const preferredAddress = preferences.has(profile.preferredAddress)
+    ? profile.preferredAddress
+    : "auto";
+  if (!ageBand && preferredAddress === "auto") return null;
+
+  const lines = [
+    "USER ADDRESSING CONTEXT (validated, minimal profile data):",
+    ageBand ? `Age group: ${ageBand}.` : "Age group: not provided.",
+    `Preferred Telugu address: ${preferredAddress}.`,
+  ];
+  if (preferredAddress === "respectful") {
+    lines.push("Use consistent respectful Telugu forms such as మీరు/మీకు.");
+  } else if (preferredAddress === "casual") {
+    lines.push("Use consistent casual Telugu forms such as నువ్వు/నీకు.");
+  } else {
+    lines.push("Follow the user's established conversational register; do not switch pronouns randomly.");
+  }
+  if (firstAssistantMessage && ageBand) {
+    lines.push("This is the first assistant reply in this conversation. If replying in Telugu, choose at most one natural, age-appropriate and non-gender-assuming vocative. If no clearly suitable vocative exists, omit it.");
+  } else {
+    lines.push("Do not use or repeat an age-based vocative in this reply. Continue naturally and respectfully.");
+  }
+  lines.push("Never infer gender, family relationship, exact age or any additional personal detail. The raw date of birth is not supplied.");
+  return lines.join("\n");
+}
+
 async function handleRequest(request, env) {
     if (request.method === "OPTIONS") {
       const origin = request.headers.get("Origin");
@@ -925,9 +968,9 @@ async function handleRequest(request, env) {
       }
 
       const requestId = crypto.randomUUID();
-      const authResponse = await requireFirebaseUser(request, env, requestId);
-      if (authResponse) return authResponse;
-      const rateLimit = await checkRateLimit(env, request, "vision");
+      const authContext = await requireFirebaseUser(request, env, requestId);
+      if (authContext instanceof Response) return authContext;
+      const rateLimit = await checkRateLimit(env, request, "vision", authContext.uid);
       if (!rateLimit.allowed) {
         return jsonResponse({
           success: false,
@@ -1124,9 +1167,9 @@ async function handleRequest(request, env) {
     }
 
     const requestId = crypto.randomUUID();
-    const authResponse = await requireFirebaseUser(request, env, requestId);
-    if (authResponse) return authResponse;
-    const rateLimit = await checkRateLimit(env, request, "chat");
+    const authContext = await requireFirebaseUser(request, env, requestId);
+    if (authContext instanceof Response) return authContext;
+    const rateLimit = await checkRateLimit(env, request, "chat", authContext.uid);
     if (!rateLimit.allowed) {
       return jsonResponse({
         success: false,
@@ -1194,6 +1237,10 @@ async function handleRequest(request, env) {
         dialect: dialect || "none",
       });
 
+      const profileContext = userProfileInstruction(
+        body.profile,
+        !history.some((item) => item.role === "assistant"),
+      );
       const messages = [
         {
           role: "system",
@@ -1204,6 +1251,7 @@ async function handleRequest(request, env) {
           role: "system",
           content: languageInstruction(language, dialect),
         },
+        ...(profileContext ? [{ role: "system", content: profileContext }] : []),
         {
           role: "user",
           content: message,
