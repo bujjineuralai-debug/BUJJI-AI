@@ -397,7 +397,7 @@ class _AiDiagnosticsScreenState extends State<AiDiagnosticsScreen> {
                 children: [
                   const Icon(Icons.fingerprint_rounded, color: _cyan, size: 17),
                   const SizedBox(width: 7),
-                  const Text('Trace ID', style: TextStyle(color: _muted, fontSize: 11)),
+                  Text('Trace ID: $traceId', style: const TextStyle(color: _muted, fontSize: 11)),
                   const Spacer(),
                   IconButton(
                     tooltip: 'Copy Trace ID',
