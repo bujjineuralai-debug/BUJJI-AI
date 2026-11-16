@@ -88,3 +88,11 @@ test("CORS source has an explicit origin allowlist and no wildcard grant", async
   assert.match(worker, /allowedCorsOrigins\(env\)\.includes\(origin\)/);
   assert.doesNotMatch(worker, /Access-Control-Allow-Origin\s*:\s*["']\*["']/i);
 });
+
+test("Voice Translation uses the shared authenticated Worker transport", async () => {
+  const source = await read("lib/menu/menu_features.dart");
+  assert.match(source, /BujjiApiService\.postJson\(/);
+  assert.match(source, /import '\.\.\/services\/bujji_api_service\.dart';/);
+  assert.doesNotMatch(source, /HttpClient\s*\(/);
+  assert.doesNotMatch(source, /postUrl\s*\(/);
+});
