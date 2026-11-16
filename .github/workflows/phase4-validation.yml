@@ -43,9 +43,12 @@ jobs:
           channel: stable
       - name: Backup custom Android manifest
         run: |
+          mkdir -p /tmp/bujji-backup
           if [ -f android/app/src/main/AndroidManifest.xml ]; then
-            mkdir -p /tmp/bujji-backup
             cp android/app/src/main/AndroidManifest.xml /tmp/bujji-backup/AndroidManifest.xml
+          fi
+          if [ -f test/widget_test.dart ]; then
+            cp test/widget_test.dart /tmp/bujji-backup/widget_test.dart
           fi
 
       - name: Generate missing Android platform files
@@ -55,6 +58,9 @@ jobs:
         run: |
           if [ -f /tmp/bujji-backup/AndroidManifest.xml ]; then
             cp /tmp/bujji-backup/AndroidManifest.xml android/app/src/main/AndroidManifest.xml
+          fi
+          if [ -f /tmp/bujji-backup/widget_test.dart ]; then
+            cp /tmp/bujji-backup/widget_test.dart test/widget_test.dart
           fi
 
       - name: Set Firebase-compatible Android minimum SDK
