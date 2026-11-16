@@ -200,6 +200,36 @@ test("Gemini success returns a correlated request id", async () => {
   assert.match(data.requestId, /^[0-9a-f-]{36}$/i);
 });
 
+test("Telugu grammar prompt protects speaker roles and natural conversational phrasing", async () => {
+  let systemText = "";
+  globalThis.fetch = async (_url, options) => {
+    const payload = JSON.parse(options.body);
+    systemText = payload.systemInstruction.parts[0].text;
+    return new Response(JSON.stringify({
+      candidates: [{
+        content: { parts: [{ text: "తప్పకుండా! నన్ను బుజ్జి అని పిలవచ్చు. మనం తెలుగులోనే మాట్లాడుకుందాం." }] },
+        finishReason: "STOP",
+      }],
+    }), { status: 200, headers: { "content-type": "application/json" } });
+  };
+
+  const response = await worker.fetch(
+    chatRequest(JSON.stringify({
+      message: "నేను నిన్ను బుజ్జి అని పిలుస్తాను. నువ్వు నన్ను ఏమని పిలుస్తావు?",
+    })),
+    envWithAi(),
+  );
+  const data = await response.json();
+
+  assert.equal(response.status, 200);
+  assert.equal(data.reply, "తప్పకుండా! నన్ను బుజ్జి అని పిలవచ్చు. మనం తెలుగులోనే మాట్లాడుకుందాం.");
+  assert.match(systemText, /first person refers to BUJJI/);
+  assert.match(systemText, /second person refers to the user/);
+  assert.match(systemText, /నన్ను బుజ్జి అని పిలవచ్చు/);
+  assert.match(systemText, /మనం తెలుగులోనే మాట్లాడుకుందాం/);
+  assert.match(systemText, /Do not blindly repeat the user's pronouns/);
+});
+
 test("Gemini primary works without a Cloudflare AI binding", async () => {
   globalThis.fetch = async (_url, options) => {
     const payload = JSON.parse(options.body);
