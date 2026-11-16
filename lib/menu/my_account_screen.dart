@@ -157,12 +157,23 @@ class _MyAccountScreenState extends State<MyAccountScreen> {
     }
     setState(() => _saving = true);
     try {
+      var user = FirebaseAuth.instance.currentUser;
+      if (user == null && (_dateOfBirth != null || _preferredAddress != 'auto')) {
+        try {
+          user = (await FirebaseAuth.instance.signInAnonymously()).user;
+        } on FirebaseAuthException {
+          // Keep the basic profile usable locally if guest sign-in is disabled.
+        }
+      }
       final prefs = await SharedPreferences.getInstance();
       await prefs.setString('account_name', name);
       await prefs.setString('account_email', email);
-      final user = FirebaseAuth.instance.currentUser;
       if (user == null) {
-        _notice('Profile saved on this device. Sign in to sync it to Firebase.');
+        _notice(
+          _dateOfBirth != null || _preferredAddress != 'auto'
+              ? 'Name and email saved locally. Sign in to save DOB and Telugu address preferences.'
+              : 'Profile saved on this device. Sign in to sync it to Firebase.',
+        );
       } else {
         await user.updateDisplayName(name);
         await _saveCloudProfile(user, name: name, dateOfBirth: _dateOfBirth, preferredAddress: _preferredAddress);
