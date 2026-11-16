@@ -1,3 +1,4 @@
+import 'package:flutter/foundation.dart' show kDebugMode;
 import 'package:flutter/material.dart';
 
 class BujjiMenuHome extends StatelessWidget {
@@ -83,6 +84,10 @@ class BujjiMenuHome extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    // Diagnostics are a development-only tool and must not appear in Play Store builds.
+    final visibleItems = kDebugMode
+        ? items
+        : items.where((item) => item.title != 'AI Diagnostics').toList(growable: false);
     return Container(
       color: background,
       width: double.infinity,
@@ -109,7 +114,7 @@ class BujjiMenuHome extends StatelessWidget {
           Expanded(
             child: GridView.builder(
               padding: const EdgeInsets.fromLTRB(16, 0, 16, 18),
-              itemCount: items.length,
+              itemCount: visibleItems.length,
               gridDelegate: const SliverGridDelegateWithFixedCrossAxisCount(
                 crossAxisCount: 2,
                 crossAxisSpacing: 12,
@@ -117,7 +122,7 @@ class BujjiMenuHome extends StatelessWidget {
                 childAspectRatio: 1.12,
               ),
               itemBuilder: (context, index) {
-                final item = items[index];
+                final item = visibleItems[index];
                 final accent = index == 5 ? gold : cyan;
                 return Material(
                   color: card,
