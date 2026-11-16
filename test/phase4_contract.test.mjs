@@ -104,3 +104,12 @@ test("optional DOB can be removed from the user's Firestore profile", async () =
   assert.match(profile, /tooltip:\s*'Clear date of birth'/);
   assert.match(profile, /clearDateOfBirth:\s*_dateOfBirth == null/);
 });
+
+test("AI Diagnostics is visible only in debug/development builds", async () => {
+  const menu = await read("lib/menu/menu_home.dart");
+  assert.match(menu, /import 'package:flutter\/foundation\.dart' show kDebugMode;/);
+  assert.match(menu, /final visibleItems = kDebugMode/);
+  assert.match(menu, /items\.where\(\(item\) => item\.title != 'AI Diagnostics'\)/);
+  assert.match(menu, /itemCount: visibleItems\.length/);
+  assert.match(menu, /final item = visibleItems\[index\]/);
+});
