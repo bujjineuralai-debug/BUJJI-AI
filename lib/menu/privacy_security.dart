@@ -81,6 +81,9 @@ class PrivacySecurityScreen extends StatelessWidget {
                 _InfoText(
                   'Firebase Authentication is used to establish an app session. The app sends a Firebase ID token to the BUJJI AI service for authentication; local API diagnostics do not store that token. Firebase may process account and device/network information under Google’s applicable privacy terms.',
                 ),
+                _InfoText(
+                  'If you choose to add a date of birth to your signed-in profile, it is stored in your own Firebase profile document. BUJJI AI derives a broad age group on the device and sends only that age group and your Telugu address preference to the chat service; the raw date of birth is not sent to the AI Worker. Date of birth is optional and is used for age-appropriate first-reply addressing.',
+                ),
               ],
             ),
             Container(
