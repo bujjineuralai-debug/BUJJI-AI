@@ -11,6 +11,7 @@ class BujjiMenuHome extends StatelessWidget {
   final VoidCallback onOpenLearning;
   final VoidCallback onOpenPremium;
   final VoidCallback onOpenShare;
+  final VoidCallback onOpenDiagnostics;
 
   const BujjiMenuHome({
     super.key,
@@ -24,6 +25,7 @@ class BujjiMenuHome extends StatelessWidget {
     required this.onOpenLearning,
     required this.onOpenPremium,
     required this.onOpenShare,
+    required this.onOpenDiagnostics,
   });
 
   static const Color background = Color(0xFF06101E);
@@ -50,6 +52,8 @@ class BujjiMenuHome extends StatelessWidget {
         'Share the app with friends'),
     _MenuItem(Icons.feedback_rounded, 'Feedback & Suggestions',
         'Send ideas and report a problem'),
+    _MenuItem(Icons.monitor_heart_rounded, 'AI Diagnostics',
+        'API health, request status and Trace IDs'),
     _MenuItem(Icons.info_outline_rounded, 'About BUJJI AI',
         'App version and developer information'),
   ];
@@ -141,6 +145,8 @@ class BujjiMenuHome extends StatelessWidget {
                         onOpenPremium();
                       } else if (item.title == 'Share BUJJI AI') {
                         onOpenShare();
+                      } else if (item.title == 'AI Diagnostics') {
+                        onOpenDiagnostics();
                       } else {
                         _showComingSoon(context, item);
                       }
