@@ -49,6 +49,8 @@ jobs:
           fi
           if [ -f test/widget_test.dart ]; then
             cp test/widget_test.dart /tmp/bujji-backup/widget_test.dart
+          else
+            touch /tmp/bujji-backup/widget_test_was_absent
           fi
 
       - name: Generate missing Android platform files
@@ -61,6 +63,8 @@ jobs:
           fi
           if [ -f /tmp/bujji-backup/widget_test.dart ]; then
             cp /tmp/bujji-backup/widget_test.dart test/widget_test.dart
+          elif [ -f /tmp/bujji-backup/widget_test_was_absent ]; then
+            rm -f test/widget_test.dart
           fi
 
       - name: Set Firebase-compatible Android minimum SDK
