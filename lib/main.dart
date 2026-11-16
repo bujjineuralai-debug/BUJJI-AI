@@ -19,6 +19,7 @@ import 'menu/feedback_suggestions.dart';
 import 'menu/help_support.dart';
 import 'menu/privacy_security.dart';
 import 'menu/menu_features.dart';
+import 'menu/ai_diagnostics_screen.dart';
 import 'services/bujji_api_service.dart';
 import 'services/bujji_user_profile_service.dart';
 
@@ -756,6 +757,7 @@ class _BujjiHomeScreenState extends State<BujjiHomeScreen> {
                                   onOpenLearning: () => Navigator.of(context).push(MaterialPageRoute(builder: (_) => const MyLearningScreen())),
                                   onOpenPremium: () => Navigator.of(context).push(MaterialPageRoute(builder: (_) => const BujjiPremiumScreen())),
                                   onOpenShare: () => Navigator.of(context).push(MaterialPageRoute(builder: (_) => const ShareBujjiScreen())),
+                                  onOpenDiagnostics: () => Navigator.of(context).push(MaterialPageRoute(builder: (_) => const AiDiagnosticsScreen())),
                                 )
                               : _buildSectionContent(),
                 ),
