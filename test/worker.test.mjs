@@ -692,3 +692,68 @@ test("chat audit stages share one Trace ID and never log user content", async ()
     console.log = originalLog;
   }
 });
+
+
+test("Gemini transient failure uses OpenAI GPT-6 Luna fallback with the same conversation context", async () => {
+  const calls = [];
+  globalThis.fetch = async (url, options) => {
+    calls.push({ url: String(url), options });
+    if (String(url).includes("generativelanguage.googleapis.com")) {
+      return new Response("temporary upstream failure", { status: 503 });
+    }
+
+    assert.equal(String(url), "https://api.openai.com/v1/responses");
+    assert.equal(options.headers.Authorization, "Bearer openai-test-key");
+    const payload = JSON.parse(options.body);
+    assert.equal(payload.model, "gpt-6-luna");
+    assert.equal(payload.store, false);
+    assert.match(payload.instructions, /BUJJI AI/);
+    assert.deepEqual(payload.input, [
+      { role: "user", content: [{ type: "input_text", text: "prior question" }] },
+      { role: "assistant", content: [{ type: "input_text", text: "prior answer" }] },
+      { role: "user", content: [{ type: "input_text", text: "hello" }] },
+    ]);
+    return new Response(JSON.stringify({
+      output: [{
+        type: "message",
+        content: [{ type: "output_text", text: "OpenAI fallback reply." }],
+      }],
+    }), { status: 200, headers: { "content-type": "application/json" } });
+  };
+
+  const response = await worker.fetch(
+    chatRequest(JSON.stringify({
+      message: "hello",
+      history: [
+        { role: "user", content: "prior question" },
+        { role: "assistant", content: "prior answer" },
+      ],
+    })),
+    { GEMINI_API_KEY: "gemini-test-key", OPENAI_API_KEY: "openai-test-key" },
+  );
+  const data = await response.json();
+  assert.equal(response.status, 200);
+  assert.equal(data.success, true);
+  assert.equal(data.reply, "OpenAI fallback reply.");
+  assert.equal(calls.length, 2);
+});
+
+test("Gemini client errors do not trigger OpenAI fallback", async () => {
+  let openAiCalled = false;
+  globalThis.fetch = async (url) => {
+    if (String(url).includes("generativelanguage.googleapis.com")) {
+      return new Response("invalid request", { status: 400 });
+    }
+    openAiCalled = true;
+    throw new Error("OpenAI must not run for a Gemini client error.");
+  };
+
+  const response = await worker.fetch(
+    chatRequest(JSON.stringify({ message: "hello" })),
+    { GEMINI_API_KEY: "gemini-test-key", OPENAI_API_KEY: "openai-test-key" },
+  );
+  const data = await response.json();
+  assert.equal(response.status, 500);
+  assert.equal(openAiCalled, false);
+  assert.equal(data.success, false);
+});
