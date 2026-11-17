@@ -75,7 +75,7 @@ Still required in a non-production environment:
 1. Confirm Firebase Anonymous provider is enabled; run anonymous sign-in and profile read/write on a real test device.
 2. Verify the staging Worker has `GEMINI_API_KEY`, `AI`, `RATE_LIMITER`, Firebase project vars and required Durable Object migration.
 3. Test authenticated `/chat` and `/vision`, including missing/expired/wrong-project/invalid-signature tokens.
-4. Test Gemini success, Google Search grounding, and safe failure behavior when Gemini is unavailable (no chat fallback).
+4. Test Gemini success, Google Search grounding, transient Gemini failure to OpenAI fallback, non-retryable Gemini client errors, and safe failure when both providers are unavailable.
 5. Test Vision query and caption fallback with real image payloads.
 6. Verify all Flutter Worker call sites return and record Trace IDs; test Voice Translation after the shared-auth transport correction.
 7. Test CORS preflight for every actual browser origin, if a browser client is deployed.
