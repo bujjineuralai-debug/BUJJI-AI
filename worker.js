@@ -220,14 +220,18 @@ async function runPrimaryModel(env, messages) {
       response = await requestGemini(contents, false);
     } else {
       console.error("Gemini API request failed:", response.status);
-      throw new Error(`Gemini API request failed with status ${response.status}.`);
+      const providerError = new Error(`Gemini API request failed with status ${response.status}.`);
+      providerError.status = response.status;
+      throw providerError;
     }
   }
 
   if (!response.ok) {
     const errorText = await response.text();
     console.error("Gemini API retry failed:", response.status);
-    throw new Error(`Gemini API request failed with status ${response.status}.`);
+    const providerError = new Error(`Gemini API retry failed with status ${response.status}.`);
+    providerError.status = response.status;
+    throw providerError;
   }
 
   let data = await response.json();
@@ -325,10 +329,77 @@ async function runPrimaryModel(env, messages) {
   return reply;
 }
 
-async function runChatModel(env, messages, requestId) {
-  const reply = await runPrimaryModel(env, messages);
-  console.log("BUJJI AI provider selected:", requestId, "Gemini");
+const OPENAI_FALLBACK_MODEL = "gpt-6-luna";
+
+async function runOpenAiFallback(env, messages) {
+  if (typeof env.OPENAI_API_KEY !== "string" || !env.OPENAI_API_KEY.trim()) {
+    throw new Error("OPENAI_API_KEY secret is missing.");
+  }
+
+  const instructions = messages
+    .filter((item) => item.role === "system")
+    .map((item) => item.content)
+    .join("\\n\\n");
+  const input = messages
+    .filter((item) => item.role !== "system")
+    .map((item) => ({
+      role: item.role,
+      content: [{ type: "input_text", text: item.content }],
+    }));
+
+  const response = await fetch("https://api.openai.com/v1/responses", {
+    method: "POST",
+    headers: {
+      "Content-Type": "application/json",
+      Authorization: `Bearer ${env.OPENAI_API_KEY}`,
+    },
+    body: JSON.stringify({
+      model: OPENAI_FALLBACK_MODEL,
+      instructions,
+      input,
+      max_output_tokens: 8192,
+      store: false,
+    }),
+  });
+
+  if (!response.ok) {
+    console.error("OpenAI fallback request failed:", response.status);
+    throw new Error(`OpenAI fallback request failed with status ${response.status}.`);
+  }
+
+  const data = await response.json();
+  const reply = (Array.isArray(data.output) ? data.output : [])
+    .filter((item) => item?.type === "message" && Array.isArray(item.content))
+    .flatMap((item) => item.content)
+    .filter((item) => item?.type === "output_text" && typeof item.text === "string")
+    .map((item) => item.text)
+    .join("")
+    .trim();
+
+  if (!reply) {
+    throw new Error("OpenAI fallback returned an empty response.");
+  }
   return reply;
+}
+
+function shouldUseOpenAiFallback(error) {
+  if (error?.message === "GEMINI_API_KEY secret is missing.") return false;
+  const status = Number(error?.status);
+  return !Number.isFinite(status) || status === 408 || status === 429 || status >= 500;
+}
+
+async function runChatModel(env, messages, requestId) {
+  try {
+    const reply = await runPrimaryModel(env, messages);
+    console.log("BUJJI AI provider selected:", requestId, "Gemini");
+    return reply;
+  } catch (error) {
+    if (!shouldUseOpenAiFallback(error)) throw error;
+    console.warn("Gemini unavailable; attempting OpenAI fallback:", requestId);
+    const reply = await runOpenAiFallback(env, messages);
+    console.log("BUJJI AI provider selected:", requestId, "OpenAI");
+    return reply;
+  }
 }
 const MAX_MESSAGE_LENGTH = 4000;
 const MAX_HISTORY_ITEMS = 12;
