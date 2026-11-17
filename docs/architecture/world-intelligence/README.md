@@ -305,3 +305,98 @@ This architecture task does not:
 ---
 
 **Decision:** The correct first integration point is a dedicated Worker-side World Intelligence orchestration layer, invoked by the existing chat route and positioned before the existing model-provider call. Keep Flutter and the current provider contract unchanged. Implement only after baseline tests and the actual target-branch structure are confirmed.
+
+
+## 16. Truth-first intelligence and calibrated confidence (founder requirement)
+
+The system must not treat “I don't know” as the primary solution to incorrect answers. The goal is to make the strongest justified answer possible through explicit verification. Abstention is a last-resort safety behavior when evidence remains insufficient, contradictory, or inaccessible—not a substitute for research and reasoning.
+
+### 16.1 Required answer pipeline
+
+1. Parse the exact question, constraints, assumptions, units, language, and requested time scope.
+2. Identify the answer type: calculation, logic puzzle, stable fact, current fact, explanation, opinion, or high-impact advice.
+3. Select the appropriate verification method before drafting.
+4. Retrieve or calculate the supporting evidence.
+5. Independently verify the result using a second method/source where practical.
+6. Check every material claim, calculation, unit, date, and conclusion against the evidence.
+7. Detect contradictions, missing assumptions, duplicated text, malformed language, and incomplete/truncated output.
+8. Only then compose the user-facing answer with source references or a clear derivation where appropriate.
+
+### 16.2 Verification by answer type
+
+- **Math and arithmetic:** recompute independently; substitute the result back into every original condition; test minimality when asked for the smallest value.
+- **Logic and reasoning:** translate the question into explicit constraints; solve step by step; test the proposed answer against every constraint and relevant counterexample.
+- **Science:** use established physical principles, distinguish idealized assumptions from real-world conditions, and check units and magnitudes.
+- **History and stable factual claims:** prefer authoritative primary or institutional references and corroborate important claims.
+- **Current information:** perform live research, record retrieval/publication dates, compare independent credible sources, and state the applicable time.
+- **Language:** preserve meaning and intent; validate grammar, naturalness, script, dialect, and completeness with language-specific evaluation.
+- **High-impact domains:** require stronger sources, more conservative checks, and appropriate safety boundaries.
+
+### 16.3 Confidence must be earned, not generated
+
+- A model's self-reported confidence is not evidence and must never be presented as a calibrated probability by itself.
+- Confidence/status must be derived from measurable signals: evidence quality, source independence, recency, agreement, calculation checks, constraint satisfaction, and evaluation history.
+- Distinguish **verified**, **partially supported**, **conflicting evidence**, and **not verified** internally.
+- Do not label an answer “verified” unless its defined checks pass.
+- If evidence cannot establish certainty, state the precise limitation rather than inventing certainty or a numeric confidence.
+- Track calibration on held-out benchmark sets: answers assigned to a confidence band must achieve the corresponding empirical accuracy over time.
+
+### 16.4 Independent verification and contradiction checks
+
+For important answers, use a verification path that is meaningfully independent of the generation path—for example, deterministic code for arithmetic, a second source for factual claims, or a separately designed checker for logic constraints. Repeating the same model's answer is not independent verification.
+
+The checker must be able to reject a fluent answer. Fluency, length, confident tone, and repetition are not correctness signals.
+
+### 16.5 Output quality gate
+
+Before returning a response, check:
+- Does it answer the actual question?
+- Does it satisfy every stated condition?
+- Are calculations and examples correct?
+- Are claims supported by the cited evidence?
+- Is uncertainty accurately represented?
+- Is the response in the requested language and natural register?
+- Is any sentence duplicated or irrelevant?
+- Is the answer complete and not truncated?
+
+If a critical check fails, retry with a bounded correction process; if it still fails, return the best-supported partial result and explain the specific unresolved point.
+
+## 17. Reasoning benchmark and regression suite
+
+Create a versioned benchmark suite before changing prompts or models. Include:
+- three-switch/three-bulb puzzle with the one-entry constraint;
+- remainder problems with all congruences and smallest-positive-number verification;
+- physical hypotheticals that distinguish Earth's rotation from its revolution;
+- truth-teller/liar path puzzles with unambiguous setup;
+- multi-rule arithmetic and sequence problems;
+- Telugu meaning-preservation and natural paraphrase tasks;
+- long-answer repetition, relevance, and truncation checks.
+
+Every benchmark item must have a verified reference answer, explicit scoring rubric, accepted alternatives where applicable, and test metadata. Run the same suite against each model/provider, prompt, and orchestration change. Record accuracy, constraint satisfaction, unsupported-claim rate, repetition rate, truncation rate, Telugu quality, latency, and cost. A release must not regress below the agreed thresholds.
+
+## 18. Multilingual quality validation
+
+Maintain a separate quality status for every supported language and dialect. A language must not be marked verified merely because the model can generate text in it.
+
+Validation must combine:
+- native-speaker review for meaning, grammar, idiom, and naturalness;
+- independent AI cross-checks as supporting evidence, not as a replacement for native review;
+- back-translation and semantic meaning-preservation checks;
+- per-language benchmark questions with independently verified answers;
+- user feedback and correction tracking;
+- a language-specific scorecard, regression history, and explicit verified / in-testing / unsupported status.
+
+## 19. Initial implementation gates
+
+Do not attempt a broad “all knowledge” rollout in one change. Deliver in testable slices:
+1. Baseline the current production branch and existing contracts.
+2. Build the query-understanding and answer-type router.
+3. Implement deterministic verification for calculations and constraint-based puzzles.
+4. Implement source-aware live research and claim/evidence checks.
+5. Add confidence calibration and output-quality gates.
+6. Add governed knowledge ingestion and versioning.
+7. Expand domain coverage and multilingual evaluation incrementally.
+
+Each slice must have automated tests, traceability, cost/latency measurements, a kill switch, and rollback. Keep the existing Flutter response contract backward compatible until a separately tested client change is approved.
+
+**Non-negotiable principle:** BUJJI must not sound certain merely because a language model generated a fluent answer. It must earn the right to present an answer as verified by passing the relevant checks.
