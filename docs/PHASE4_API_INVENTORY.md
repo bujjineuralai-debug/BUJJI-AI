@@ -24,6 +24,7 @@ The shared transport obtains or creates a Firebase session, obtains an ID token,
 | Provider | Model / endpoint | Purpose | Credential / binding |
 |---|---|---|---|
 | Google Gemini API | `v1beta/models/gemini-3.8-flash:generateContent` | Primary chat, writing, feature and translation generation | `GEMINI_API_KEY` Cloudflare Worker Secret |
+| OpenAI API | `v1/responses` with `gpt-6-luna` | Chat fallback only after transient Gemini/network failures | `OPENAI_API_KEY` Cloudflare Worker Secret |
 | Google Search grounding | Gemini `google_search` tool | Search-grounded responses and source URLs when available | Uses the Gemini API key; tool is part of the Gemini request |
 | Cloudflare Workers AI | `@cf/moondream/moondream3.1-9B-A2B` | Vision image query, with caption fallback if query answer is empty | Worker `AI` binding |
 
