@@ -25,7 +25,6 @@ The shared transport obtains or creates a Firebase session, obtains an ID token,
 |---|---|---|---|
 | Google Gemini API | `v1beta/models/gemini-3.8-flash:generateContent` | Primary chat, writing, feature and translation generation | `GEMINI_API_KEY` Cloudflare Worker Secret |
 | Google Search grounding | Gemini `google_search` tool | Search-grounded responses and source URLs when available | Uses the Gemini API key; tool is part of the Gemini request |
-| Cloudflare Workers AI | `@cf/meta/llama-3.2-3b-instruct` | Chat fallback when Gemini fails | Worker `AI` binding |
 | Cloudflare Workers AI | `@cf/moondream/moondream3.1-9B-A2B` | Vision image query, with caption fallback if query answer is empty | Worker `AI` binding |
 
 Gemini 3.8 Flash is listed as a stable Gemini API model and supports Google Search grounding in Google's current model and grounding documentation. See [Gemini models](https://ai.google.dev/gemini-api/docs/models) and [Google Search grounding](https://ai.google.dev/gemini-api/docs/google-search).
@@ -76,7 +75,7 @@ Still required in a non-production environment:
 1. Confirm Firebase Anonymous provider is enabled; run anonymous sign-in and profile read/write on a real test device.
 2. Verify the staging Worker has `GEMINI_API_KEY`, `AI`, `RATE_LIMITER`, Firebase project vars and required Durable Object migration.
 3. Test authenticated `/chat` and `/vision`, including missing/expired/wrong-project/invalid-signature tokens.
-4. Test Gemini success, Google Search grounding, Gemini-to-Llama fallback and both-provider failure.
+4. Test Gemini success, Google Search grounding, and safe failure behavior when Gemini is unavailable (no chat fallback).
 5. Test Vision query and caption fallback with real image payloads.
 6. Verify all Flutter Worker call sites return and record Trace IDs; test Voice Translation after the shared-auth transport correction.
 7. Test CORS preflight for every actual browser origin, if a browser client is deployed.
