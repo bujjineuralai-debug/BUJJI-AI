@@ -40,7 +40,7 @@ Worker operational audit events use Trace IDs and non-content metadata. Vision d
 - A dedicated Telugu Language Intelligence module now supplies separate grammar, orthography, pronoun, honorific, Romanized Telugu and silent-proofreading guidance to the Worker system prompt. Automated Worker coverage checks that the module is present in the Gemini prompt and includes vowel signs, conjuncts, doubled consonants and respectful-address rules.
 - Runtime review with native Telugu speakers remains necessary; the prompt is guidance for the model, not a deterministic Telugu spell-checker or a guarantee of perfect orthography.
 - Test end-to-end Trace ID correlation and all supported languages.
-- `/chat` now uses Gemini only; the retired Llama chat fallback has been removed. `/vision` continues to use its separate Cloudflare AI model through the `AI` binding. Regression tests verify Gemini-only configuration and safe failure without invoking Cloudflare AI for chat.
+- `/chat` uses Gemini 3.8 Flash as primary and OpenAI GPT-6 Luna through the Responses API as fallback for network failures, timeouts, rate limits and upstream 5xx responses. Non-retryable Gemini 4xx errors do not trigger fallback. `/vision` continues to use its separate Cloudflare AI model through the `AI` binding. OpenAI requests set `store: false`; provider logs contain request IDs and provider names, not prompts or keys.
 
 
 ## CORS and privacy notice hardening (2026-11-13)
