@@ -40,14 +40,14 @@ Worker operational audit events use Trace IDs and non-content metadata. Vision d
 - A dedicated Telugu Language Intelligence module now supplies separate grammar, orthography, pronoun, honorific, Romanized Telugu and silent-proofreading guidance to the Worker system prompt. Automated Worker coverage checks that the module is present in the Gemini prompt and includes vowel signs, conjuncts, doubled consonants and respectful-address rules.
 - Runtime review with native Telugu speakers remains necessary; the prompt is guidance for the model, not a deterministic Telugu spell-checker or a guarantee of perfect orthography.
 - Test end-to-end Trace ID correlation and all supported languages.
-- Removed the unnecessary early Cloudflare AI binding requirement from `/chat`, so Gemini primary can run without that binding. The Llama fallback still checks for `env.AI`, and `/vision` retains its Cloudflare AI binding requirement. A regression test covers Gemini-only configuration.
+- `/chat` now uses Gemini only; the retired Llama chat fallback has been removed. `/vision` continues to use its separate Cloudflare AI model through the `AI` binding. Regression tests verify Gemini-only configuration and safe failure without invoking Cloudflare AI for chat.
 
 
 ## CORS and privacy notice hardening (2026-11-13)
 
 - Removed the wildcard `Access-Control-Allow-Origin: *` policy. Browser origins are now permitted only when their exact origin is listed in the Worker `CORS_ALLOWED_ORIGINS` environment variable (comma-separated, exact origin values including scheme and port where applicable). Do not use wildcard entries.
 - Requests without an `Origin` header remain available for native clients. Browser preflights from unlisted origins receive HTTP 403. Configure the actual production/staging web origins before enabling browser clients; do not guess origins.
-- The in-app Privacy & Security notice now explains which message/context is sent to configured AI providers, distinguishes Gemini chat primary / Cloudflare fallback / Cloudflare Vision, describes Firebase session tokens, technical request metadata and device-local diagnostic/history controls, and clarifies that local clearing does not delete provider-side or server-side data.
+- The in-app Privacy & Security notice explains which message/context is sent to configured AI providers, distinguishes Gemini chat from Cloudflare Vision, describes Firebase session tokens, technical request metadata and device-local diagnostic/history controls, and clarifies that local clearing does not delete provider-side or server-side data.
 - Provider retention, training, regional processing and deletion terms must be verified against the then-current Google, Cloudflare and Firebase terms before release. The app notice deliberately makes no unsupported retention guarantee.
 - Validation added for allowlisted/denied CORS preflights and native requests without Origin. Runtime browser and native-device verification remains required.
 
@@ -77,11 +77,11 @@ Automated CI on the Phase 4 branch has passed Flutter analysis/tests and Worker 
 
 - Run anonymous Firebase sign-in on a real test device against the intended Firebase project; verify profile reads/writes and credential linking.
 - Deploy/use a non-production Worker environment with its own configured secret, Firebase project settings, Durable Object binding and migration; run authenticated Chat and Vision requests against it.
-- Verify end-to-end Trace ID correlation across Flutter, Worker, Gemini/Llama provider selection, Vision and the diagnostics UI.
+- Verify end-to-end Trace ID correlation across Flutter, Worker, Gemini chat, Vision and the diagnostics UI.
 - Test app restart history restore, history clear, and diagnostics clear on-device.
 - Verify actual CORS allowlist values only if browser clients are deployed. Do not invent origins or use a wildcard.
 - Firebase ID-token signature and claim validation is implemented, but token revocation checking still needs a trusted server-side Firebase Admin verification source before production.
-- Validate Gemini primary, Google Search grounding, Llama fallback and total-provider-failure behavior with the configured staging key and project quota.
+- Validate Gemini chat, Google Search grounding and safe Gemini-unavailable behavior with the configured staging key and project quota.
 - Have native Telugu speakers review naturalness and orthography. The grammar module is model guidance with automated prompt-contract coverage, not a deterministic morphological parser or a guarantee of perfect spell-checking.
 - Re-run full regression and staging smoke tests after all external configuration is supplied.
 
