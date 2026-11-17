@@ -1,3 +1,4 @@
+import 'package:flutter/foundation.dart' show kDebugMode;
 import 'package:flutter/material.dart';
 
 class BujjiMenuHome extends StatelessWidget {
@@ -11,6 +12,7 @@ class BujjiMenuHome extends StatelessWidget {
   final VoidCallback onOpenLearning;
   final VoidCallback onOpenPremium;
   final VoidCallback onOpenShare;
+  final VoidCallback onOpenDiagnostics;
 
   const BujjiMenuHome({
     super.key,
@@ -24,6 +26,7 @@ class BujjiMenuHome extends StatelessWidget {
     required this.onOpenLearning,
     required this.onOpenPremium,
     required this.onOpenShare,
+    required this.onOpenDiagnostics,
   });
 
   static const Color background = Color(0xFF06101E);
@@ -50,6 +53,8 @@ class BujjiMenuHome extends StatelessWidget {
         'Share the app with friends'),
     _MenuItem(Icons.feedback_rounded, 'Feedback & Suggestions',
         'Send ideas and report a problem'),
+    _MenuItem(Icons.monitor_heart_rounded, 'AI Diagnostics',
+        'API health, request status and Trace IDs'),
     _MenuItem(Icons.info_outline_rounded, 'About BUJJI AI',
         'App version and developer information'),
   ];
@@ -79,6 +84,10 @@ class BujjiMenuHome extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    // Diagnostics are a development-only tool and must not appear in Play Store builds.
+    final visibleItems = kDebugMode
+        ? items
+        : items.where((item) => item.title != 'AI Diagnostics').toList(growable: false);
     return Container(
       color: background,
       width: double.infinity,
@@ -105,7 +114,7 @@ class BujjiMenuHome extends StatelessWidget {
           Expanded(
             child: GridView.builder(
               padding: const EdgeInsets.fromLTRB(16, 0, 16, 18),
-              itemCount: items.length,
+              itemCount: visibleItems.length,
               gridDelegate: const SliverGridDelegateWithFixedCrossAxisCount(
                 crossAxisCount: 2,
                 crossAxisSpacing: 12,
@@ -113,7 +122,7 @@ class BujjiMenuHome extends StatelessWidget {
                 childAspectRatio: 1.12,
               ),
               itemBuilder: (context, index) {
-                final item = items[index];
+                final item = visibleItems[index];
                 final accent = index == 5 ? gold : cyan;
                 return Material(
                   color: card,
@@ -141,6 +150,8 @@ class BujjiMenuHome extends StatelessWidget {
                         onOpenPremium();
                       } else if (item.title == 'Share BUJJI AI') {
                         onOpenShare();
+                      } else if (item.title == 'AI Diagnostics') {
+                        onOpenDiagnostics();
                       } else {
                         _showComingSoon(context, item);
                       }

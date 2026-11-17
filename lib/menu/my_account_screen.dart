@@ -31,7 +31,13 @@ String _authError(FirebaseAuthException e) {
   }
 }
 
-Future<void> _saveCloudProfile(User user, {String? name}) async {
+Future<void> _saveCloudProfile(
+  User user, {
+  String? name,
+  DateTime? dateOfBirth,
+  String? preferredAddress,
+  bool clearDateOfBirth = false,
+}) async {
   final ref = FirebaseFirestore.instance.collection('users').doc(user.uid);
   final old = await ref.get();
   final displayName = (name?.trim().isNotEmpty ?? false)
@@ -47,6 +53,18 @@ Future<void> _saveCloudProfile(User user, {String? name}) async {
     'updatedAt': FieldValue.serverTimestamp(),
   };
   if (displayName.isNotEmpty) data['displayName'] = displayName;
+  if (dateOfBirth != null) {
+    data['dateOfBirth'] = DateTime(
+      dateOfBirth.year,
+      dateOfBirth.month,
+      dateOfBirth.day,
+    ).toIso8601String().split('T').first;
+  } else if (clearDateOfBirth) {
+    data['dateOfBirth'] = FieldValue.delete();
+  }
+  if (preferredAddress != null && {'auto', 'respectful', 'casual'}.contains(preferredAddress)) {
+    data['preferredAddress'] = preferredAddress;
+  }
   if (!old.exists) data['createdAt'] = FieldValue.serverTimestamp();
   await ref.set(data, SetOptions(merge: true));
 }
@@ -62,6 +80,8 @@ class _MyAccountScreenState extends State<MyAccountScreen> {
   final _email = TextEditingController();
   User? _user;
   bool _loading = true, _saving = false, _googleBusy = false;
+  DateTime? _dateOfBirth;
+  String _preferredAddress = 'auto';
 
   @override
   void initState() { super.initState(); _load(); }
@@ -74,6 +94,8 @@ class _MyAccountScreenState extends State<MyAccountScreen> {
     final user = FirebaseAuth.instance.currentUser;
     var name = prefs.getString('account_name') ?? '';
     var email = prefs.getString('account_email') ?? '';
+    DateTime? dateOfBirth;
+    var preferredAddress = 'auto';
     if (user != null) {
       if ((user.displayName ?? '').isNotEmpty) name = user.displayName!;
       email = user.email ?? email;
@@ -82,12 +104,16 @@ class _MyAccountScreenState extends State<MyAccountScreen> {
         final data = snap.data();
         if ((data?['displayName'] ?? '').toString().isNotEmpty) name = data!['displayName'].toString();
         if ((data?['email'] ?? '').toString().isNotEmpty) email = data!['email'].toString();
+        final rawDob = data?['dateOfBirth'];
+        if (rawDob is String) dateOfBirth = DateTime.tryParse(rawDob);
+        final rawPreference = data?['preferredAddress']?.toString() ?? 'auto';
+        if ({'auto', 'respectful', 'casual'}.contains(rawPreference)) preferredAddress = rawPreference;
       } catch (_) {}
     }
     if (!mounted) return;
     _name.text = name;
     _email.text = email;
-    setState(() { _user = user; _loading = false; });
+    setState(() { _user = user; _dateOfBirth = dateOfBirth; _preferredAddress = preferredAddress; _loading = false; });
   }
 
   Future<void> _refresh() async {
@@ -122,6 +148,18 @@ class _MyAccountScreenState extends State<MyAccountScreen> {
     );
   }
 
+  Future<void> _pickDateOfBirth() async {
+    final now = DateTime.now();
+    final selected = await showDatePicker(
+      context: context,
+      initialDate: _dateOfBirth ?? DateTime(now.year - 25, now.month, now.day),
+      firstDate: DateTime(now.year - 120, 1, 1),
+      lastDate: DateTime(now.year, now.month, now.day),
+      helpText: 'Select your date of birth',
+    );
+    if (selected != null && mounted) setState(() => _dateOfBirth = selected);
+  }
+
   Future<void> _save() async {
     if (_saving) return;
     final name = _name.text.trim(), email = _email.text.trim();
@@ -131,15 +169,32 @@ class _MyAccountScreenState extends State<MyAccountScreen> {
     }
     setState(() => _saving = true);
     try {
+      var user = FirebaseAuth.instance.currentUser;
+      if (user == null && (_dateOfBirth != null || _preferredAddress != 'auto')) {
+        try {
+          user = (await FirebaseAuth.instance.signInAnonymously()).user;
+        } on FirebaseAuthException {
+          // Keep the basic profile usable locally if guest sign-in is disabled.
+        }
+      }
       final prefs = await SharedPreferences.getInstance();
       await prefs.setString('account_name', name);
       await prefs.setString('account_email', email);
-      final user = FirebaseAuth.instance.currentUser;
       if (user == null) {
-        _notice('Profile saved on this device. Sign in to sync it to Firebase.');
+        _notice(
+          _dateOfBirth != null || _preferredAddress != 'auto'
+              ? 'Name and email saved locally. Sign in to save DOB and Telugu address preferences.'
+              : 'Profile saved on this device. Sign in to sync it to Firebase.',
+        );
       } else {
         await user.updateDisplayName(name);
-        await _saveCloudProfile(user, name: name);
+        await _saveCloudProfile(
+          user,
+          name: name,
+          dateOfBirth: _dateOfBirth,
+          preferredAddress: _preferredAddress,
+          clearDateOfBirth: _dateOfBirth == null,
+        );
         _notice('Profile saved on this device and Firebase.');
       }
       await _refresh();
@@ -272,6 +327,52 @@ class _MyAccountScreenState extends State<MyAccountScreen> {
             TextField(controller: _email, keyboardType: TextInputType.emailAddress, style: const TextStyle(color: Colors.white),
               decoration: InputDecoration(labelText: 'Email (optional)', labelStyle: const TextStyle(color: _muted),
                 filled: true, fillColor: _panel, border: OutlineInputBorder(borderRadius: BorderRadius.circular(12)))),
+            const SizedBox(height: 12),
+            Card(
+              color: _panel,
+              child: ListTile(
+                leading: const Icon(Icons.cake_outlined, color: _cyan),
+                title: const Text('Date of birth', style: TextStyle(color: Colors.white)),
+                subtitle: Text(
+                  _dateOfBirth == null
+                      ? 'Optional — used only to calculate an age group'
+                      : '${_dateOfBirth!.day.toString().padLeft(2, '0')}/${_dateOfBirth!.month.toString().padLeft(2, '0')}/${_dateOfBirth!.year}',
+                  style: const TextStyle(color: _muted, fontSize: 12),
+                ),
+                trailing: Row(
+                  mainAxisSize: MainAxisSize.min,
+                  children: [
+                    if (_dateOfBirth != null)
+                      IconButton(
+                        tooltip: 'Clear date of birth',
+                        onPressed: () => setState(() => _dateOfBirth = null),
+                        icon: const Icon(Icons.delete_outline, color: _muted),
+                      ),
+                    const Icon(Icons.calendar_month, color: _muted),
+                  ],
+                ),
+                onTap: _pickDateOfBirth,
+              ),
+            ),
+            const SizedBox(height: 10),
+            DropdownButtonFormField<String>(
+              value: _preferredAddress,
+              dropdownColor: _panel,
+              style: const TextStyle(color: Colors.white),
+              decoration: InputDecoration(
+                labelText: 'Preferred Telugu addressing',
+                labelStyle: const TextStyle(color: _muted),
+                filled: true,
+                fillColor: _panel,
+                border: OutlineInputBorder(borderRadius: BorderRadius.circular(12)),
+              ),
+              items: const [
+                DropdownMenuItem(value: 'auto', child: Text('Automatic / follow my style')),
+                DropdownMenuItem(value: 'respectful', child: Text('Respectful — మీరు / మీకు')),
+                DropdownMenuItem(value: 'casual', child: Text('Casual — నువ్వు / నీకు')),
+              ],
+              onChanged: (value) { if (value != null) setState(() => _preferredAddress = value); },
+            ),
             const SizedBox(height: 12),
             SizedBox(width: double.infinity, child: ElevatedButton(
               onPressed: _saving ? null : _save,

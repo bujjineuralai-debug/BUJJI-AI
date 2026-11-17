@@ -40,14 +40,14 @@ Worker operational audit events use Trace IDs and non-content metadata. Vision d
 - A dedicated Telugu Language Intelligence module now supplies separate grammar, orthography, pronoun, honorific, Romanized Telugu and silent-proofreading guidance to the Worker system prompt. Automated Worker coverage checks that the module is present in the Gemini prompt and includes vowel signs, conjuncts, doubled consonants and respectful-address rules.
 - Runtime review with native Telugu speakers remains necessary; the prompt is guidance for the model, not a deterministic Telugu spell-checker or a guarantee of perfect orthography.
 - Test end-to-end Trace ID correlation and all supported languages.
-- Removed the unnecessary early Cloudflare AI binding requirement from `/chat`, so Gemini primary can run without that binding. The Llama fallback still checks for `env.AI`, and `/vision` retains its Cloudflare AI binding requirement. A regression test covers Gemini-only configuration.
+- `/chat` uses Gemini 3.8 Flash as primary and OpenAI GPT-6 Luna through the Responses API as fallback for network failures, timeouts, rate limits and upstream 5xx responses. Non-retryable Gemini 4xx errors do not trigger fallback. `/vision` continues to use its separate Cloudflare AI model through the `AI` binding. OpenAI requests set `store: false`; provider logs contain request IDs and provider names, not prompts or keys.
 
 
 ## CORS and privacy notice hardening (2026-11-13)
 
 - Removed the wildcard `Access-Control-Allow-Origin: *` policy. Browser origins are now permitted only when their exact origin is listed in the Worker `CORS_ALLOWED_ORIGINS` environment variable (comma-separated, exact origin values including scheme and port where applicable). Do not use wildcard entries.
 - Requests without an `Origin` header remain available for native clients. Browser preflights from unlisted origins receive HTTP 403. Configure the actual production/staging web origins before enabling browser clients; do not guess origins.
-- The in-app Privacy & Security notice now explains which message/context is sent to configured AI providers, distinguishes Gemini chat primary / Cloudflare fallback / Cloudflare Vision, describes Firebase session tokens, technical request metadata and device-local diagnostic/history controls, and clarifies that local clearing does not delete provider-side or server-side data.
+- The in-app Privacy & Security notice explains which message/context is sent to configured AI providers, distinguishes Gemini chat from Cloudflare Vision, describes Firebase session tokens, technical request metadata and device-local diagnostic/history controls, and clarifies that local clearing does not delete provider-side or server-side data.
 - Provider retention, training, regional processing and deletion terms must be verified against the then-current Google, Cloudflare and Firebase terms before release. The app notice deliberately makes no unsupported retention guarantee.
 - Validation added for allowlisted/denied CORS preflights and native requests without Origin. Runtime browser and native-device verification remains required.
 
@@ -56,3 +56,33 @@ Worker operational audit events use Trace IDs and non-content metadata. Vision d
 - Added `test/phase4_contract.test.mjs` to verify source-level contracts for bounded local chat history (100 messages), diagnostics retention/redaction (50 entries and an explicit metadata-only key set), Trace ID propagation, Privacy Notice disclosures, required Firebase authentication/rate limiting configuration, and explicit CORS origin allowlisting.
 - Updated the Phase 4 GitHub Actions workflow to run every Node test file with `node --test test/*.test.mjs`, alongside Worker syntax validation, Flutter analysis and Flutter tests.
 - These contract checks are automated source/configuration guards. They do not prove Android runtime behavior, real Firebase token issuance, deployed Cloudflare bindings, browser preflight behavior against a live deployment, provider retention practices, or native-speaker Telugu quality. Those remain staging/device/provider/human validation items.
+## Phase 4 implementation branch update (2026-11-16)
+
+## Phase 4 implementation branch update (2026-11-16)
+
+The sections above record the earlier baseline audit and must not be read as a statement that the current Phase 4 feature branch still lacks these fields.
+
+The isolated branch `phase4/stage1-stage2-implementation-2026-11-16` now adds:
+- Optional DOB storage in the authenticated user's own Firestore profile.
+- Local-only derivation of a coarse age band; raw DOB is not sent to the Worker.
+- A user-selectable Telugu addressing preference (`auto`, `respectful`, `casual`) that overrides inferred register.
+- First-assistant-reply-only age-based vocative guidance, with later replies instructed not to repeat the title.
+- A dedicated model-guidance module for Telugu grammar, sentence structure, orthography (అచ్చులు, హల్లులు, గుణింతాలు, వత్తులు/ఒత్తులు, సంయుక్తాక్షరాలు), speaker/listener roles, honorifics, dialects, Roman Telugu and silent output checks.
+- Per-user rate limiting when a verified Firebase UID is available, plus an IP abuse-protection bucket.
+- Shared authenticated API transport for Chat, Writing, Feature, Vision and Voice Translation. Voice Translation was corrected in the Phase 4 branch to use `BujjiApiService` rather than an unauthenticated direct HTTP request.
+
+Automated CI on the Phase 4 branch has passed Flutter analysis/tests and Worker syntax/request tests on the earlier validated commit. The later Voice Translation transport fix and its regression test are awaiting the newest complete CI run. Cloudflare Preview build validation has also succeeded for the implementation branch.
+
+### Remaining external validation and release gates
+
+- Run anonymous Firebase sign-in on a real test device against the intended Firebase project; verify profile reads/writes and credential linking.
+- Deploy/use a non-production Worker environment with its own configured secret, Firebase project settings, Durable Object binding and migration; run authenticated Chat and Vision requests against it.
+- Verify end-to-end Trace ID correlation across Flutter, Worker, Gemini chat, Vision and the diagnostics UI.
+- Test app restart history restore, history clear, and diagnostics clear on-device.
+- Verify actual CORS allowlist values only if browser clients are deployed. Do not invent origins or use a wildcard.
+- Firebase ID-token signature and claim validation is implemented, but token revocation checking still needs a trusted server-side Firebase Admin verification source before production.
+- Validate Gemini chat, Google Search grounding and safe Gemini-unavailable behavior with the configured staging key and project quota.
+- Have native Telugu speakers review naturalness and orthography. The grammar module is model guidance with automated prompt-contract coverage, not a deterministic morphological parser or a guarantee of perfect spell-checking.
+- Re-run full regression and staging smoke tests after all external configuration is supplied.
+
+No Production deployment, main-branch merge, Firebase rules publication, or live account/data migration is authorized by this feature branch.

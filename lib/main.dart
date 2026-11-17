@@ -19,7 +19,9 @@ import 'menu/feedback_suggestions.dart';
 import 'menu/help_support.dart';
 import 'menu/privacy_security.dart';
 import 'menu/menu_features.dart';
+import 'menu/ai_diagnostics_screen.dart';
 import 'services/bujji_api_service.dart';
+import 'services/bujji_user_profile_service.dart';
 
 Future<void> main() async {
   WidgetsFlutterBinding.ensureInitialized();
@@ -553,9 +555,12 @@ class _BujjiHomeScreenState extends State<BujjiHomeScreen> {
     }
 
     try {
+      final profile = await BujjiUserProfileService.forConversation(
+        firstAssistantMessage: !history.any((item) => item['role'] == 'assistant'),
+      );
       final apiResponse = await BujjiApiService.postJson(
         Uri.parse(apiUrl),
-        {'message': message, 'history': history},
+        {'message': message, 'history': history, 'profile': profile},
       );
       final int statusCode = apiResponse.statusCode;
       final Map<String, dynamic> decoded = apiResponse.data;
@@ -752,6 +757,7 @@ class _BujjiHomeScreenState extends State<BujjiHomeScreen> {
                                   onOpenLearning: () => Navigator.of(context).push(MaterialPageRoute(builder: (_) => const MyLearningScreen())),
                                   onOpenPremium: () => Navigator.of(context).push(MaterialPageRoute(builder: (_) => const BujjiPremiumScreen())),
                                   onOpenShare: () => Navigator.of(context).push(MaterialPageRoute(builder: (_) => const ShareBujjiScreen())),
+                                  onOpenDiagnostics: () => Navigator.of(context).push(MaterialPageRoute(builder: (_) => const AiDiagnosticsScreen())),
                                 )
                               : _buildSectionContent(),
                 ),

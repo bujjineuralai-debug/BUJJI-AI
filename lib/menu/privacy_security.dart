@@ -73,13 +73,16 @@ class PrivacySecurityScreen extends StatelessWidget {
                   'Local API diagnostics keep up to 50 recent request summaries (endpoint, time, duration, HTTP status, outcome and Trace ID). They do not include prompts, chat history, image contents, authentication tokens, email addresses or Firebase user IDs. Diagnostics are stored on this device.',
                 ),
                 _InfoText(
-                  'To generate a reply, the BUJJI AI service sends the message and the recent conversation context needed for that request to the configured AI provider (currently Google Gemini for chat, with Cloudflare AI as the chat fallback; photo analysis uses Cloudflare AI). These providers process the submitted content to return results. Their handling, retention and processing are governed by their own current terms and privacy policies; BUJJI AI does not control those provider practices. Do not submit passwords, payment-card data, government ID numbers or other highly sensitive information.',
+                  'To generate a reply, the BUJJI AI service sends the message and the recent conversation context needed for that request to Google Gemini for chat. If Gemini has a temporary service/network failure, the same request may be sent to OpenAI as a fallback. Photo analysis uses Cloudflare AI. These providers process the submitted content to return results. Their handling, retention and processing are governed by their own current terms and privacy policies; BUJJI AI does not control those provider practices. Do not submit passwords, payment-card data, government ID numbers or other highly sensitive information.',
                 ),
                 _InfoText(
                   'The service also processes technical request data such as your IP address for rate limiting, request time, endpoint, response status and a random Trace ID for troubleshooting and abuse prevention. Operational logs are designed not to include message text, conversation history, image bytes or authentication tokens. This app screen does not make a promise about provider-side or infrastructure-side retention periods.',
                 ),
                 _InfoText(
                   'Firebase Authentication is used to establish an app session. The app sends a Firebase ID token to the BUJJI AI service for authentication; local API diagnostics do not store that token. Firebase may process account and device/network information under Google’s applicable privacy terms.',
+                ),
+                _InfoText(
+                  'If you choose to add a date of birth to your signed-in profile, it is stored in your own Firebase profile document. BUJJI AI derives a broad age group on the device and sends only that age group and your Telugu address preference to the chat service; the raw date of birth is not sent to the AI Worker. Date of birth is optional and is used for age-appropriate first-reply addressing.',
                 ),
               ],
             ),

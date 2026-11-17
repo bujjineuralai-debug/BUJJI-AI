@@ -41,9 +41,54 @@ jobs:
         uses: subosito/flutter-action@v2
         with:
           channel: stable
+      - name: Backup custom Android manifest
+        run: |
+          mkdir -p /tmp/bujji-backup
+          if [ -f android/app/src/main/AndroidManifest.xml ]; then
+            cp android/app/src/main/AndroidManifest.xml /tmp/bujji-backup/AndroidManifest.xml
+          fi
+          if [ -f test/widget_test.dart ]; then
+            cp test/widget_test.dart /tmp/bujji-backup/widget_test.dart
+          else
+            touch /tmp/bujji-backup/widget_test_was_absent
+          fi
+
+      - name: Generate missing Android platform files
+        run: flutter create --platforms=android .
+
+      - name: Restore custom Android manifest
+        run: |
+          if [ -f /tmp/bujji-backup/AndroidManifest.xml ]; then
+            cp /tmp/bujji-backup/AndroidManifest.xml android/app/src/main/AndroidManifest.xml
+          fi
+          if [ -f /tmp/bujji-backup/widget_test.dart ]; then
+            cp /tmp/bujji-backup/widget_test.dart test/widget_test.dart
+          elif [ -f /tmp/bujji-backup/widget_test_was_absent ]; then
+            rm -f test/widget_test.dart
+          fi
+
+      - name: Set Firebase-compatible Android minimum SDK
+        run: |
+          if [ -f android/app/build.gradle.kts ]; then
+            sed -i 's/minSdk = flutter.minSdkVersion/minSdk = 23/' android/app/build.gradle.kts
+          elif [ -f android/app/build.gradle ]; then
+            sed -i 's/minSdkVersion flutter.minSdkVersion/minSdkVersion 23/' android/app/build.gradle
+          fi
+
       - name: Install dependencies
         run: flutter pub get
       - name: Analyze
         run: flutter analyze --no-fatal-infos
       - name: Run tests
         run: flutter test
+
+      - name: Build debug APK
+        run: flutter build apk --debug
+
+      - name: Upload Phase 4 test APK
+        uses: actions/upload-artifact@v4
+        with:
+          name: BUJJI-AI-PHASE4-DEBUG-APK
+          path: build/app/outputs/flutter-apk/app-debug.apk
+          if-no-files-found: error
+          retention-days: 7
