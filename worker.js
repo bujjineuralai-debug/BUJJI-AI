@@ -339,7 +339,7 @@ async function runOpenAiFallback(env, messages) {
   const instructions = messages
     .filter((item) => item.role === "system")
     .map((item) => item.content)
-    .join("\\n\\n");
+    .join("\n\n");
   const input = messages
     .filter((item) => item.role !== "system")
     .map((item) => ({
