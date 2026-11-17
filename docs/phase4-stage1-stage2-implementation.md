@@ -17,6 +17,6 @@
 
 ## Validation
 
-Run the Flutter test suite and analyzer, then the Worker test suite and staging integration checks. In particular verify anonymous Firebase profile reads/writes, signed-in DOB persistence, profile preference overrides, first-reply-only vocative behavior, per-user/IP rate-limit buckets, CORS preflight for each deployed web origin, and Gemini/Llama behavior.
+Run the Flutter test suite and analyzer, then the Worker test suite and staging integration checks. In particular verify anonymous Firebase profile reads/writes, signed-in DOB persistence, profile preference overrides, first-reply-only vocative behavior, per-user/IP rate-limit buckets, CORS preflight for each deployed web origin, and Gemini-only chat behavior, including safe failure when Gemini is unavailable.
 
 No production deployment, main-branch change, or merge is authorized by this implementation branch.
