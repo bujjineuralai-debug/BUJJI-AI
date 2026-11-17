@@ -252,22 +252,22 @@ test("Gemini primary works without a Cloudflare AI binding", async () => {
   assert.ok(data.requestId);
 });
 
-test("Gemini failure uses the configured Llama fallback", async () => {
+test("Gemini failure does not invoke a Cloudflare AI chat fallback", async () => {
   globalThis.fetch = async () => new Response("temporary upstream failure", { status: 503 });
-  let fallbackCalled = false;
+  let cloudflareAiCalled = false;
   const response = await worker.fetch(
     chatRequest(JSON.stringify({ message: "hello" })),
-    envWithAi(async (model) => {
-      fallbackCalled = true;
-      assert.equal(model, "@cf/meta/llama-3.2-3b-instruct");
-      return { response: "Fallback is working." };
+    envWithAi(async () => {
+      cloudflareAiCalled = true;
+      throw new Error("Cloudflare AI must not be used as a chat fallback.");
     }),
   );
   const data = await response.json();
-  assert.equal(response.status, 200);
-  assert.equal(fallbackCalled, true);
-  assert.equal(data.reply, "Fallback is working.");
+  assert.equal(response.status, 500);
+  assert.equal(cloudflareAiCalled, false);
+  assert.equal(data.success, false);
   assert.ok(data.requestId);
+  assert.equal(data.error, "Unable to process your request. Please try again.");
 });
 
 test("required rate limiting fails closed when its binding is missing", async () => {
@@ -543,14 +543,15 @@ test("Roman Telugu, Telugu script and Hindi messages select their reply language
   }
 });
 
-test("both Gemini and Llama failures return a safe server error", async () => {
-  globalThis.fetch = async () => new Response("upstream unavailable", { status: 503 });
+test("missing Gemini credentials fail safely without invoking Cloudflare AI", async () => {
+  let cloudflareAiCalled = false;
   const response = await worker.fetch(
     chatRequest(JSON.stringify({ message: "hello" })),
-    envWithAi(async () => { throw new Error("fallback unavailable"); }),
+    { AI: { run: async () => { cloudflareAiCalled = true; return { response: "not used" }; } } },
   );
   const data = await response.json();
   assert.equal(response.status, 500);
+  assert.equal(cloudflareAiCalled, false);
   assert.equal(data.success, false);
   assert.ok(data.requestId);
   assert.equal(data.error, "Unable to process your request. Please try again.");
