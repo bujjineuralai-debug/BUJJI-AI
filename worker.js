@@ -165,7 +165,6 @@ ${TELUGU_GRAMMAR_INTELLIGENCE_PROMPT}
 `;
 
 const MODEL = "gemini-3.8-flash";
-const FALLBACK_MODEL = "@cf/meta/llama-3.2-3b-instruct";
 
 async function runPrimaryModel(env, messages) {
   if (typeof env.GEMINI_API_KEY !== "string" || !env.GEMINI_API_KEY.trim()) {
@@ -327,35 +326,9 @@ async function runPrimaryModel(env, messages) {
 }
 
 async function runChatModel(env, messages, requestId) {
-  try {
-    const reply = await runPrimaryModel(env, messages);
-    console.log("BUJJI AI provider selected:", requestId, "Gemini");
-    return reply;
-  } catch (error) {
-    const detail = error instanceof Error ? error.message : String(error);
-    console.warn("Gemini unavailable; using Cloudflare Llama fallback:", requestId, detail);
-
-    if (!env || !env.AI || typeof env.AI.run !== "function") {
-      throw new Error("Gemini failed and Cloudflare AI fallback is unavailable.");
-    }
-
-    const result = await env.AI.run(FALLBACK_MODEL, {
-      messages,
-      max_tokens: 4096,
-      temperature: 0.6,
-    });
-
-    const reply = result && typeof result.response === "string"
-      ? result.response.trim()
-      : "";
-
-    if (!reply) {
-      throw new Error("Both Gemini and Cloudflare Llama returned an empty response.");
-    }
-
-    console.log("BUJJI AI provider selected:", requestId, "Cloudflare Llama fallback");
-    return reply;
-  }
+  const reply = await runPrimaryModel(env, messages);
+  console.log("BUJJI AI provider selected:", requestId, "Gemini");
+  return reply;
 }
 const MAX_MESSAGE_LENGTH = 4000;
 const MAX_HISTORY_ITEMS = 12;
