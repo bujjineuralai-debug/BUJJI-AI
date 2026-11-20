@@ -5,6 +5,7 @@ on:
     branches:
       - 'phase4/**'
       - 'implementation/level1-repository-inventory-2026-11-20'
+      - 'implementation/level3-error-bug-warning-audit-2026-11-20'
   pull_request:
     branches:
       - main
