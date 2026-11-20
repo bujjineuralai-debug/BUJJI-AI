@@ -298,7 +298,7 @@ class _MyAccountScreenState extends State<MyAccountScreen> {
     } catch (_) {
       if (profileUser != null) {
         await _setProfileSyncPending(
-          profileUser!,
+          profileUser,
           true,
           dateOfBirth: _dateOfBirth,
           preferredAddress: _preferredAddress,
