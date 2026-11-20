@@ -31,6 +31,16 @@ String _authError(FirebaseAuthException e) {
   }
 }
 
+Future<void> _setProfileSyncPending(User user, bool pending) async {
+  final prefs = await SharedPreferences.getInstance();
+  final key = 'account_profile_sync_pending_${user.uid}';
+  if (pending) {
+    await prefs.setBool(key, true);
+  } else {
+    await prefs.remove(key);
+  }
+}
+
 Future<void> _saveCloudProfile(
   User user, {
   String? name,
@@ -82,6 +92,8 @@ class _MyAccountScreenState extends State<MyAccountScreen> {
   bool _loading = true, _saving = false, _googleBusy = false;
   DateTime? _dateOfBirth;
   String _preferredAddress = 'auto';
+  bool _profileLoadFailed = false;
+  bool _profileSyncPending = false;
 
   @override
   void initState() { super.initState(); _load(); }
@@ -96,9 +108,12 @@ class _MyAccountScreenState extends State<MyAccountScreen> {
     var email = prefs.getString('account_email') ?? '';
     DateTime? dateOfBirth;
     var preferredAddress = 'auto';
+    var profileLoadFailed = false;
+    var profileSyncPending = false;
     if (user != null) {
       if ((user.displayName ?? '').isNotEmpty) name = user.displayName!;
       email = user.email ?? email;
+      profileSyncPending = prefs.getBool('account_profile_sync_pending_${user.uid}') ?? false;
       try {
         final snap = await FirebaseFirestore.instance.collection('users').doc(user.uid).get();
         final data = snap.data();
@@ -108,38 +123,55 @@ class _MyAccountScreenState extends State<MyAccountScreen> {
         if (rawDob is String) dateOfBirth = DateTime.tryParse(rawDob);
         final rawPreference = data?['preferredAddress']?.toString() ?? 'auto';
         if ({'auto', 'respectful', 'casual'}.contains(rawPreference)) preferredAddress = rawPreference;
-      } catch (_) {}
+      } catch (_) {
+        // Keep safe local/Auth values, but make the failed cloud read visible.
+        profileLoadFailed = true;
+      }
     }
     if (!mounted) return;
     _name.text = name;
     _email.text = email;
-    setState(() { _user = user; _dateOfBirth = dateOfBirth; _preferredAddress = preferredAddress; _loading = false; });
+    setState(() {
+      _user = user;
+      _dateOfBirth = dateOfBirth;
+      _preferredAddress = preferredAddress;
+      _profileLoadFailed = profileLoadFailed;
+      _profileSyncPending = profileSyncPending;
+      _loading = false;
+    });
   }
 
-  Future<void> _refresh() async {
+  Future<bool> _refresh() async {
     final auth = FirebaseAuth.instance;
-    await auth.currentUser?.reload();
+    var syncSucceeded = true;
+    try {
+      await auth.currentUser?.reload();
+    } catch (_) {
+      syncSucceeded = false;
+    }
     final user = auth.currentUser;
     if (user != null) {
       try {
-        final reference = FirebaseFirestore.instance.collection('users').doc(user.uid);
-        final snapshot = await reference.get();
-        final data = snapshot.data();
         final localPrefs = await SharedPreferences.getInstance();
         final localName = localPrefs.getString('account_name') ?? '';
-        final cloudName = data?['displayName']?.toString() ?? '';
-        if (cloudName.isEmpty && (user.displayName ?? '').isEmpty && localName.isNotEmpty) {
+        if ((user.displayName ?? '').isEmpty && localName.isNotEmpty) {
           await user.updateDisplayName(localName);
         }
         await _saveCloudProfile(
           auth.currentUser!,
-          name: cloudName.isEmpty ? localName : cloudName,
+          name: localName.isEmpty ? null : localName,
+          dateOfBirth: _dateOfBirth,
+          preferredAddress: _preferredAddress,
+          clearDateOfBirth: _dateOfBirth == null,
         );
+        await _setProfileSyncPending(user, false);
       } catch (_) {
-        // Firestore rules may be awaiting publication; local profile remains safe.
+        syncSucceeded = false;
+        await _setProfileSyncPending(user, true);
       }
     }
     await _load();
+    return syncSucceeded;
   }
 
   void _notice(String text) {
@@ -168,6 +200,7 @@ class _MyAccountScreenState extends State<MyAccountScreen> {
       _notice('Please enter a valid email address.'); return;
     }
     setState(() => _saving = true);
+    User? profileUser;
     try {
       var user = FirebaseAuth.instance.currentUser;
       if (user == null && (_dateOfBirth != null || _preferredAddress != 'auto')) {
@@ -177,6 +210,7 @@ class _MyAccountScreenState extends State<MyAccountScreen> {
           // Keep the basic profile usable locally if guest sign-in is disabled.
         }
       }
+      profileUser = user;
       final prefs = await SharedPreferences.getInstance();
       await prefs.setString('account_name', name);
       await prefs.setString('account_email', email);
@@ -195,13 +229,17 @@ class _MyAccountScreenState extends State<MyAccountScreen> {
           preferredAddress: _preferredAddress,
           clearDateOfBirth: _dateOfBirth == null,
         );
+        await _setProfileSyncPending(user, false);
         _notice('Profile saved on this device and Firebase.');
       }
       await _refresh();
     } on FirebaseAuthException catch (e) {
       _notice(_authError(e));
-    } catch (e) {
-      _notice('Profile is saved locally; Firebase sync needs attention: $e');
+    } catch (_) {
+      if (profileUser != null) {
+        await _setProfileSyncPending(profileUser!, true);
+      }
+      _notice('Profile is saved locally; cloud sync is pending. Check your connection and retry.');
     } finally {
       if (mounted) setState(() => _saving = false);
     }
@@ -212,7 +250,12 @@ class _MyAccountScreenState extends State<MyAccountScreen> {
       context: context, barrierDismissible: false,
       builder: (_) => _PhoneDialog(signup: signup),
     );
-    if (done == true) { await _refresh(); _notice('Phone verification successful.'); }
+    if (done == true) {
+      final synced = await _refresh();
+      _notice(synced
+          ? 'Phone verification successful.'
+          : 'Phone verified. Profile sync is pending; use Retry on this screen.');
+    }
   }
 
   Future<void> _emailAuth() async {
@@ -220,7 +263,12 @@ class _MyAccountScreenState extends State<MyAccountScreen> {
       context: context, barrierDismissible: false,
       builder: (_) => const _EmailDialog(),
     );
-    if (done == true) await _refresh();
+    if (done == true) {
+      final synced = await _refresh();
+      _notice(synced
+          ? 'Email sign-in successful.'
+          : 'Email sign-in successful. Profile sync is pending; use Retry on this screen.');
+    }
   }
 
   Future<void> _google() async {
@@ -247,10 +295,10 @@ class _MyAccountScreenState extends State<MyAccountScreen> {
           ? (await FirebaseAuth.instance.signInWithCredential(credential)).user!
           : (await current.linkWithCredential(credential)).user!;
       await user.reload();
-      try { await _saveCloudProfile(FirebaseAuth.instance.currentUser!); }
-      catch (_) { _notice('Google sign-in succeeded, but Firestore profile sync needs its security rules.'); }
-      await _refresh();
-      _notice('Google sign-in successful.');
+      final synced = await _refresh();
+      _notice(synced
+          ? 'Google sign-in successful.'
+          : 'Google sign-in successful. Profile sync is pending; use Retry on this screen.');
     } on FirebaseAuthException catch (e) {
       _notice(_authError(e));
     } catch (e) {
@@ -319,6 +367,35 @@ class _MyAccountScreenState extends State<MyAccountScreen> {
                   style: const TextStyle(color: Colors.white, fontSize: 12))),
               ]),
             ),
+            if (_profileLoadFailed || _profileSyncPending) ...[
+              const SizedBox(height: 12),
+              Container(
+                padding: const EdgeInsets.all(12),
+                decoration: BoxDecoration(
+                  color: _panel,
+                  borderRadius: BorderRadius.circular(12),
+                  border: Border.all(color: Colors.orangeAccent.withValues(alpha: 0.6)),
+                ),
+                child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
+                  Text(
+                    _profileSyncPending
+                        ? 'Your profile is saved on this device, but cloud sync is pending.'
+                        : 'Cloud profile could not be loaded. Your local profile is still available.',
+                    style: const TextStyle(color: Colors.white, fontSize: 12),
+                  ),
+                  Align(
+                    alignment: Alignment.centerRight,
+                    child: TextButton(
+                      onPressed: _saving ? null : () async {
+                        final synced = await _refresh();
+                        _notice(synced ? 'Profile sync completed.' : 'Profile sync is still pending. Please retry later.');
+                      },
+                      child: const Text('Retry', style: TextStyle(color: _cyan)),
+                    ),
+                  ),
+                ]),
+              ),
+            ],
             const SizedBox(height: 16),
             TextField(controller: _name, style: const TextStyle(color: Colors.white),
               decoration: InputDecoration(labelText: 'Display name', labelStyle: const TextStyle(color: _muted),
@@ -479,7 +556,12 @@ class _PhoneDialogState extends State<_PhoneDialog> {
         await user.updateDisplayName(_name.text.trim());
         user = auth.currentUser!;
       }
-      try { await _saveCloudProfile(user, name: widget.signup ? _name.text.trim() : null); } catch (_) {}
+      try {
+        await _saveCloudProfile(user, name: widget.signup ? _name.text.trim() : null);
+        await _setProfileSyncPending(user, false);
+      } catch (_) {
+        await _setProfileSyncPending(user, true);
+      }
       _finished = true;
       if (mounted) Navigator.pop(context, true);
     } on FirebaseAuthException catch (e) {
@@ -571,7 +653,12 @@ class _EmailDialogState extends State<_EmailDialog> {
         await user.updateDisplayName(_name.text.trim());
         user = auth.currentUser!;
         await user.sendEmailVerification();
-        try { await _saveCloudProfile(user, name: _name.text.trim()); } catch (_) {}
+        try {
+          await _saveCloudProfile(user, name: _name.text.trim());
+          await _setProfileSyncPending(user, false);
+        } catch (_) {
+          await _setProfileSyncPending(user, true);
+        }
         if (mounted) {
           Navigator.pop(context, true);
           ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text('Account created. Open your email and tap the Firebase verification link.')));
@@ -589,7 +676,12 @@ class _EmailDialogState extends State<_EmailDialog> {
           }
           return;
         }
-        try { await _saveCloudProfile(user); } catch (_) {}
+        try {
+          await _saveCloudProfile(user);
+          await _setProfileSyncPending(user, false);
+        } catch (_) {
+          await _setProfileSyncPending(user, true);
+        }
         if (mounted) Navigator.pop(context, true);
       }
     } on FirebaseAuthException catch (e) {
