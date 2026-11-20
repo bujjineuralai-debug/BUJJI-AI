@@ -170,9 +170,10 @@ class BujjiApiService {
         durationMs: stopwatch.elapsedMilliseconds,
         statusCode: statusCode,
         requestId: requestId,
-        applicationSuccess: decoded['success'] is bool
-            ? decoded['success'] as bool
-            : null,
+        applicationSuccess: isSuccessfulApplicationResponse(
+          statusCode: statusCode!,
+          data: decoded,
+        ),
       );
 
       return BujjiApiResponse(
