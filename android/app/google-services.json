@@ -14,6 +14,14 @@
       },
       "oauth_client": [
         {
+          "client_id": "924828656704-33kuv04d5anhh5lats857kdqsimhdoqq.apps.googleusercontent.com",
+          "client_type": 1,
+          "android_info": {
+            "package_name": "com.example.bujji_ai",
+            "certificate_hash": "55c1b4f37a714af6a28dd51ae6467d88a9433693"
+          }
+        },
+        {
           "client_id": "924828656704-8cg8c1f12ku6nq3igshu40jr08ahcrmm.apps.googleusercontent.com",
           "client_type": 1,
           "android_info": {
@@ -36,7 +44,7 @@
           "other_platform_oauth_client": [
             {
               "client_id": "924828656704-kk44oad5caing6nco22k8cu2v3qeg0ep.apps.googleusercontent.com",
-              "client_type": 3
+            "client_type": 3
             }
           ]
         }
