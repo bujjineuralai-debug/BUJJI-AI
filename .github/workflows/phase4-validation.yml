@@ -81,6 +81,10 @@ jobs:
 
       - name: Install dependencies
         run: flutter pub get
+
+      - name: Generate Android launcher icons
+        run: dart run flutter_launcher_icons
+
       - name: Analyze
         run: flutter analyze --no-fatal-infos
       - name: Run tests
