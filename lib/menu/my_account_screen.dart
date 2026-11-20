@@ -286,7 +286,7 @@ class _MyAccountScreenState extends State<MyAccountScreen> {
     } on FirebaseAuthException catch (e) {
       if (profileUser != null) {
         await _setProfileSyncPending(
-          profileUser!,
+          profileUser,
           true,
           dateOfBirth: _dateOfBirth,
           preferredAddress: _preferredAddress,
