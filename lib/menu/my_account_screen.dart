@@ -152,6 +152,8 @@ class _MyAccountScreenState extends State<MyAccountScreen> {
         profileLoadFailed = true;
       }
       if (profileSyncPending) {
+        // Prefer the locally saved name while its cloud write is pending.
+        name = prefs.getString('account_name') ?? name;
         final pendingDobKey = 'account_profile_sync_pending_${user.uid}_dob';
         final pendingAddressKey = 'account_profile_sync_pending_${user.uid}_address';
         if (prefs.containsKey(pendingDobKey) && prefs.containsKey(pendingAddressKey)) {
@@ -282,6 +284,16 @@ class _MyAccountScreenState extends State<MyAccountScreen> {
       }
       await _refresh();
     } on FirebaseAuthException catch (e) {
+      if (profileUser != null) {
+        await _setProfileSyncPending(
+          profileUser!,
+          true,
+          dateOfBirth: _dateOfBirth,
+          preferredAddress: _preferredAddress,
+          includePreferences: true,
+        );
+        if (mounted) setState(() => _profileSyncPending = true);
+      }
       _notice(_authError(e));
     } catch (_) {
       if (profileUser != null) {
@@ -292,6 +304,7 @@ class _MyAccountScreenState extends State<MyAccountScreen> {
           preferredAddress: _preferredAddress,
           includePreferences: true,
         );
+        if (mounted) setState(() => _profileSyncPending = true);
       }
       _notice('Profile is saved locally; cloud sync is pending. Check your connection and retry.');
     } finally {
