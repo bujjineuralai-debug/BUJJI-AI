@@ -127,7 +127,7 @@ class _BujjiStartupScreenState extends State<BujjiStartupScreen> {
       _starting = true;
       _startupError = null;
     });
-    final minimumSplash = Future<void>.delayed(const Duration(milliseconds: 650));
+    final minimumSplash = Future<void>.delayed(const Duration(milliseconds: 1800));
     try {
       await Firebase.initializeApp(
         options: DefaultFirebaseOptions.android,
@@ -169,29 +169,21 @@ class _BujjiStartupScreenState extends State<BujjiStartupScreen> {
             mainAxisAlignment: MainAxisAlignment.center,
             children: [
               Container(
-                width: 154,
-                height: 154,
-                padding: const EdgeInsets.all(10),
+                width: 190,
+                height: 190,
                 decoration: BoxDecoration(
-                  shape: BoxShape.circle,
-                  border: Border.all(
-                    color: cyan.withOpacity(0.65),
-                    width: 1.5,
-                  ),
+                  borderRadius: BorderRadius.circular(28),
                   boxShadow: [
                     BoxShadow(
-                      color: cyan.withOpacity(0.20),
-                      blurRadius: 28,
+                      color: cyan.withOpacity(0.22),
+                      blurRadius: 32,
                       spreadRadius: 2,
                     ),
                   ],
                 ),
-                child: ClipRRect(
-                  borderRadius: BorderRadius.circular(24),
-                  child: Image.asset(
-                    'assets/bujji_logo.png',
-                    fit: BoxFit.contain,
-                  ),
+                child: Image.asset(
+                  'assets/bujji_logo.png',
+                  fit: BoxFit.contain,
                 ),
               ),
               const SizedBox(height: 24),
