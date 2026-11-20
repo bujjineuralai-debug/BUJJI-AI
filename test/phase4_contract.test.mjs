@@ -125,7 +125,7 @@ test("account profile load and sync failures remain visible and retryable", asyn
   assert.match(source, /_profileLoadFailed = profileLoadFailed/);
   assert.match(source, /account_profile_sync_pending_/);
   assert.match(source, /_setProfileSyncPending\(user, true\)/);
-  assert.match(source, /Profile is saved on this device, but cloud sync is pending/);
+  assert.match(source, /profile is saved on this device, but cloud sync is pending/);
   assert.match(source, /child: const Text\('Retry'/);
   assert.doesNotMatch(loader, /catch\s*\(_\)\s*\{\s*\}/);
 });
