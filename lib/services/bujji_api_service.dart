@@ -171,7 +171,7 @@ class BujjiApiService {
         statusCode: statusCode,
         requestId: requestId,
         applicationSuccess: isSuccessfulApplicationResponse(
-          statusCode: statusCode!,
+          statusCode: statusCode,
           data: decoded,
         ),
       );
