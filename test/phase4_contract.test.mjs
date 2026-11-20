@@ -113,3 +113,27 @@ test("AI Diagnostics is visible only in debug/development builds", async () => {
   assert.match(menu, /itemCount: visibleItems\.length/);
   assert.match(menu, /final item = visibleItems\[index\]/);
 });
+
+
+test("account profile load and sync failures remain visible and retryable", async () => {
+  const source = await read("lib/menu/my_account_screen.dart");
+  const loadStart = source.indexOf("Future<void> _load()");
+  const loadEnd = source.indexOf("Future<bool> _refresh()");
+  assert.ok(loadStart >= 0 && loadEnd > loadStart, "account profile loader must exist");
+  const loader = source.slice(loadStart, loadEnd);
+  assert.match(loader, /profileLoadFailed = true/);
+  assert.match(source, /_profileLoadFailed = profileLoadFailed/);
+  assert.match(source, /account_profile_sync_pending_/);
+  assert.match(source, /_setProfileSyncPending\(user, true\)/);
+  assert.match(source, /Profile is saved on this device, but cloud sync is pending/);
+  assert.match(source, /child: const Text\('Retry'/);
+  assert.doesNotMatch(loader, /catch\s*\(_\)\s*\{\s*\}/);
+});
+
+test("API diagnostics treat explicit application failure in a 2xx response as failure", async () => {
+  const source = await read("lib/services/bujji_api_service.dart");
+  assert.match(source, /static bool isSuccessfulApplicationResponse/);
+  assert.match(source, /data\['success'\] != false/);
+  assert.match(source, /applicationSuccess != false/);
+  assert.match(source, /applicationSuccess: decoded\['success'\] is bool/);
+});
