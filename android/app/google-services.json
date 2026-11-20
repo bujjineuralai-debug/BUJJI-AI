@@ -38,6 +38,14 @@
           }
         },
         {
+          "client_id": "924828656704-dehohsn2sraaehtdbcmr11c1atij3r85.apps.googleusercontent.com",
+          "client_type": 1,
+          "android_info": {
+            "package_name": "com.example.bujji_ai",
+            "certificate_hash": "cabd722133acd0d2b98ccd1e798f20fd50d21fa7"
+          }
+        },
+        {
           "client_id": "924828656704-kk44oad5caing6nco22k8cu2v3qeg0ep.apps.googleusercontent.com",
           "client_type": 3
         }
