@@ -708,7 +708,6 @@ class _EmailDialogState extends State<_EmailDialog> {
         await user.sendEmailVerification();
         try {
           await _saveCloudProfile(user, name: _name.text.trim());
-          await _setProfileSyncPending(user, false);
         } catch (_) {
           await _setProfileSyncPending(user, true);
         }
@@ -731,7 +730,6 @@ class _EmailDialogState extends State<_EmailDialog> {
         }
         try {
           await _saveCloudProfile(user);
-          await _setProfileSyncPending(user, false);
         } catch (_) {
           await _setProfileSyncPending(user, true);
         }
