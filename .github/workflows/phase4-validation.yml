@@ -7,6 +7,7 @@ on:
       - 'implementation/level1-repository-inventory-2026-11-20'
       - 'implementation/level3-error-bug-warning-audit-2026-11-20'
       - 'implementation/level3-bug-fixes-2026-11-20'
+      - 'implementation/ui-branding-startup-google-auth-2026-11-20'
   pull_request:
     branches:
       - main
@@ -80,6 +81,10 @@ jobs:
 
       - name: Install dependencies
         run: flutter pub get
+
+      - name: Generate Android launcher icons
+        run: dart run flutter_launcher_icons
+
       - name: Analyze
         run: flutter analyze --no-fatal-infos
       - name: Run tests
@@ -87,6 +92,15 @@ jobs:
 
       - name: Build debug APK
         run: flutter build apk --debug
+
+      - name: Report debug APK signing certificate fingerprints
+        run: |
+          if [ -f "$HOME/.android/debug.keystore" ]; then
+            keytool -list -v -keystore "$HOME/.android/debug.keystore" -storepass android -alias androiddebugkey | grep -E 'SHA1:|SHA256:'
+          else
+            echo "Debug keystore not found; cannot report signing fingerprints."
+            exit 1
+          fi
 
       - name: Upload Phase 4 test APK
         uses: actions/upload-artifact@v4

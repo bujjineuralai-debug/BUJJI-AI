@@ -1,6 +1,7 @@
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:flutter/material.dart';
+import 'package:flutter/services.dart';
 import 'package:google_sign_in/google_sign_in.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 
@@ -226,7 +227,13 @@ class _MyAccountScreenState extends State<MyAccountScreen> {
 
   void _notice(String text) {
     if (mounted) ScaffoldMessenger.of(context).showSnackBar(
-      SnackBar(content: Text(text), backgroundColor: const Color(0xFF10243B)),
+      SnackBar(
+        content: Text(text, style: const TextStyle(color: Colors.white, fontSize: 14)),
+        backgroundColor: const Color(0xFF10243B),
+        behavior: SnackBarBehavior.floating,
+        showCloseIcon: true,
+        closeIconColor: Colors.white70,
+      ),
     );
   }
 
@@ -368,8 +375,15 @@ class _MyAccountScreenState extends State<MyAccountScreen> {
           : 'Google sign-in successful. Profile sync is pending; use Retry on this screen.');
     } on FirebaseAuthException catch (e) {
       _notice(_authError(e));
-    } catch (e) {
-      _notice('Google sign-in failed: $e');
+    } on PlatformException catch (e) {
+      final details = '${e.code} ${e.message ?? ''}';
+      if (details.contains('ApiException: 10') || e.code == 'sign_in_failed') {
+        _notice('Google sign-in setup needs attention. Verify this APK signing SHA-1 and the Android OAuth client in Firebase.');
+      } else {
+        _notice('Google sign-in could not finish. Please check the Google account and try again.');
+      }
+    } catch (_) {
+      _notice('Google sign-in could not finish. Please try again.');
     } finally {
       if (mounted) setState(() => _googleBusy = false);
     }

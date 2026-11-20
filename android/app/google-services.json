@@ -14,11 +14,35 @@
       },
       "oauth_client": [
         {
+          "client_id": "924828656704-26so9b8vmq32gscnr2sb26mq8425ti1h.apps.googleusercontent.com",
+          "client_type": 1,
+          "android_info": {
+            "package_name": "com.example.bujji_ai",
+            "certificate_hash": "086e13610ee0fba371a3fe092e6d7ec2fbe16ebc"
+          }
+        },
+        {
+          "client_id": "924828656704-33kuv04d5anhh5lats857kdqsimhdoqq.apps.googleusercontent.com",
+          "client_type": 1,
+          "android_info": {
+            "package_name": "com.example.bujji_ai",
+            "certificate_hash": "55c1b4f37a714af6a28dd51ae6467d88a9433693"
+          }
+        },
+        {
           "client_id": "924828656704-8cg8c1f12ku6nq3igshu40jr08ahcrmm.apps.googleusercontent.com",
           "client_type": 1,
           "android_info": {
             "package_name": "com.example.bujji_ai",
             "certificate_hash": "82d0ebfe95f3308c5ba3f9c79ffd8601d0448a9f"
+          }
+        },
+        {
+          "client_id": "924828656704-dehohsn2sraaehtdbcmr11c1atij3r85.apps.googleusercontent.com",
+          "client_type": 1,
+          "android_info": {
+            "package_name": "com.example.bujji_ai",
+            "certificate_hash": "cabd722133acd0d2b98ccd1e798f20fd50d21fa7"
           }
         },
         {
