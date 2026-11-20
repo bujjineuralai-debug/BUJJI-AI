@@ -174,3 +174,46 @@ No production configuration, secrets, Firebase rules, Worker logic, user data or
 - [ ] Reviewer review and approval.
 
 **Level 3 status:** Audit findings and CI evidence are documented; final clean-build and external runtime verification gates must pass before Level 3 can be called fully complete. This PR remains Draft and unmerged.
+
+## 9. Level 3 implementation follow-up — 2026-11-20
+
+The Level 3 coding fixes are being delivered on the isolated branch
+`implementation/level3-bug-fixes-2026-11-20`, based on the Level 3 audit
+head. The Level 1 and Level 2 branches and PRs are not modified.
+
+### Implemented changes
+
+- **BUG-L3-001 — Profile sync status:** Firebase authentication success is no
+  longer presented as proof that the Firestore profile write succeeded.
+  Phone, email and Google flows retain a local pending-sync marker when the
+  profile write fails. The account screen shows a clear status and Retry
+  action. Pending DOB/address preference edits are stored locally and restored
+  on reload until a successful cloud sync clears the pending marker.
+- **BUG-L3-002 — Profile read failure:** A failed Firestore profile read is
+  distinguished from a profile with no optional fields. The account screen
+  retains safe local/Auth values, exposes a visible load-failure status and
+  provides a retry path.
+- **BUG-L3-003 — Diagnostics outcome:** A 2xx response with an explicit
+  `success: false` is recorded as an application failure. Legacy 2xx
+  endpoints without a `success` field remain compatible.
+- **Regression coverage added:** Dart tests cover 2xx success, 2xx application
+  failure, legacy 2xx responses and non-2xx responses. Node contract tests
+  guard visible/retryable account profile failures, pending preference
+  retention and application-level diagnostics classification.
+
+### Validation boundary
+
+- **Run #125:** Green — Worker syntax, Flutter analyze, Flutter tests, Debug
+  APK build and APK artifact upload all completed successfully on the
+  preceding audit commit.
+- **Implementation-branch validation:** Pending; the new branch has its own
+  workflow trigger and must complete green before these code changes are
+  considered CI-validated.
+- **Still not claimed:** Firebase emulator/staging fault injection, real
+  provider sync failure, and physical-device verification. These require
+  controlled external test environments.
+- No merge, production deployment, secrets, Firebase rules, or app branding
+  changes are included in this implementation.
+
+**Updated Level 3 status:** Audit complete; code fixes and regression tests
+implemented on a separate branch; final CI and external runtime gates remain.

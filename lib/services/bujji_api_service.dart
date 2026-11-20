@@ -44,12 +44,25 @@ class BujjiApiService {
 
   static const String _diagnosticsKey = 'bujji_api_diagnostics_v1';
 
+  /// A 2xx transport response is not an application success when the API
+  /// explicitly returns `success: false`. Missing `success` remains compatible
+  /// with legacy endpoints that do not expose that field.
+  static bool isSuccessfulApplicationResponse({
+    required int statusCode,
+    required Map<String, dynamic> data,
+  }) {
+    return statusCode >= 200 &&
+        statusCode < 300 &&
+        data['success'] != false;
+  }
+
   static Future<void> _recordDiagnostic({
     required String endpoint,
     required int durationMs,
     int? statusCode,
     String? requestId,
     String? errorType,
+    bool? applicationSuccess,
   }) async {
     try {
       final prefs = await SharedPreferences.getInstance();
@@ -63,7 +76,8 @@ class BujjiApiService {
         'outcome': errorType == null &&
                 statusCode != null &&
                 statusCode >= 200 &&
-                statusCode < 300
+                statusCode < 300 &&
+                applicationSuccess != false
             ? 'success'
             : 'failure',
         if (errorType != null) 'errorType': errorType,
@@ -156,6 +170,10 @@ class BujjiApiService {
         durationMs: stopwatch.elapsedMilliseconds,
         statusCode: statusCode,
         requestId: requestId,
+        applicationSuccess: isSuccessfulApplicationResponse(
+          statusCode: statusCode,
+          data: decoded,
+        ),
       );
 
       return BujjiApiResponse(

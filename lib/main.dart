@@ -25,9 +25,8 @@ import 'services/bujji_user_profile_service.dart';
 
 Future<void> main() async {
   WidgetsFlutterBinding.ensureInitialized();
-  await Firebase.initializeApp(
-    options: DefaultFirebaseOptions.android,
-  );
+  // Render the branded Flutter splash immediately. Firebase initialization
+  // now runs behind it instead of leaving Android on a black launch frame.
   runApp(const BujjiAIApp());
 }
 
@@ -47,6 +46,18 @@ class BujjiAIApp extends StatelessWidget {
           secondary: Color(0xFFFFC857),
           surface: Color(0xFF0B1B2D),
           error: Color(0xFFFF6B6B),
+        ),
+        snackBarTheme: SnackBarThemeData(
+          backgroundColor: const Color(0xFF10243B),
+          contentTextStyle: const TextStyle(
+            color: Colors.white,
+            fontSize: 14,
+            fontWeight: FontWeight.w500,
+          ),
+          actionTextColor: Color(0xFF25B8FF),
+          behavior: SnackBarBehavior.floating,
+          showCloseIcon: true,
+          closeIconColor: Colors.white70,
         ),
         appBarTheme: const AppBarTheme(
           backgroundColor: Color(0xFF06101E),
@@ -101,17 +112,37 @@ class BujjiStartupScreen extends StatefulWidget {
 }
 
 class _BujjiStartupScreenState extends State<BujjiStartupScreen> {
+  String? _startupError;
+  bool _starting = false;
+
   @override
   void initState() {
     super.initState();
-    Timer(const Duration(milliseconds: 1200), () {
+    _initializeAndContinue();
+  }
+
+  Future<void> _initializeAndContinue() async {
+    if (_starting) return;
+    setState(() {
+      _starting = true;
+      _startupError = null;
+    });
+    final minimumSplash = Future<void>.delayed(const Duration(milliseconds: 1800));
+    try {
+      await Firebase.initializeApp(
+        options: DefaultFirebaseOptions.android,
+      );
+      await minimumSplash;
       if (!mounted) return;
       Navigator.of(context).pushReplacement(
-        MaterialPageRoute(
-          builder: (_) => const BujjiHomeScreen(),
-        ),
+        MaterialPageRoute(builder: (_) => const BujjiHomeScreen()),
       );
-    });
+    } catch (error) {
+      if (!mounted) return;
+      setState(() => _startupError = 'BUJJI could not connect to its secure startup services. Please retry.');
+    } finally {
+      if (mounted) setState(() => _starting = false);
+    }
   }
 
   @override
@@ -138,28 +169,21 @@ class _BujjiStartupScreenState extends State<BujjiStartupScreen> {
             mainAxisAlignment: MainAxisAlignment.center,
             children: [
               Container(
-                width: 154,
-                height: 154,
-                padding: const EdgeInsets.all(10),
+                width: 190,
+                height: 190,
                 decoration: BoxDecoration(
-                  shape: BoxShape.circle,
-                  border: Border.all(
-                    color: cyan.withOpacity(0.65),
-                    width: 1.5,
-                  ),
+                  borderRadius: BorderRadius.circular(28),
                   boxShadow: [
                     BoxShadow(
-                      color: cyan.withOpacity(0.20),
-                      blurRadius: 28,
+                      color: cyan.withOpacity(0.22),
+                      blurRadius: 32,
                       spreadRadius: 2,
                     ),
                   ],
                 ),
-                child: ClipOval(
-                  child: Image.asset(
-                    'assets/bujji_logo.png',
-                    fit: BoxFit.cover,
-                  ),
+                child: Image.asset(
+                  'assets/bujji_logo.png',
+                  fit: BoxFit.contain,
                 ),
               ),
               const SizedBox(height: 24),
@@ -182,14 +206,25 @@ class _BujjiStartupScreenState extends State<BujjiStartupScreen> {
                 ),
               ),
               const SizedBox(height: 34),
-              const SizedBox(
-                width: 26,
-                height: 26,
-                child: CircularProgressIndicator(
-                  strokeWidth: 2.2,
-                  valueColor: AlwaysStoppedAnimation<Color>(cyan),
+              if (_startupError == null)
+                const SizedBox(
+                  width: 26,
+                  height: 26,
+                  child: CircularProgressIndicator(
+                    strokeWidth: 2.2,
+                    valueColor: AlwaysStoppedAnimation<Color>(cyan),
+                  ),
+                )
+              else ...[
+                Padding(
+                  padding: const EdgeInsets.symmetric(horizontal: 28),
+                  child: Text(_startupError!, textAlign: TextAlign.center,
+                    style: const TextStyle(color: Colors.white, fontSize: 13)),
                 ),
-              ),
+                const SizedBox(height: 12),
+                ElevatedButton(onPressed: _initializeAndContinue,
+                  child: const Text('Retry')),
+              ],
             ],
           ),
         ),
