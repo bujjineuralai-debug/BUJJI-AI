@@ -151,6 +151,18 @@ class _MyAccountScreenState extends State<MyAccountScreen> {
         // Keep safe local/Auth values, but make the failed cloud read visible.
         profileLoadFailed = true;
       }
+      if (profileSyncPending) {
+        final pendingDobKey = 'account_profile_sync_pending_${user.uid}_dob';
+        final pendingAddressKey = 'account_profile_sync_pending_${user.uid}_address';
+        if (prefs.containsKey(pendingDobKey) && prefs.containsKey(pendingAddressKey)) {
+          final pendingDob = prefs.getString(pendingDobKey) ?? '';
+          dateOfBirth = pendingDob.isEmpty ? null : DateTime.tryParse(pendingDob);
+          final pendingAddress = prefs.getString(pendingAddressKey) ?? 'auto';
+          if ({'auto', 'respectful', 'casual'}.contains(pendingAddress)) {
+            preferredAddress = pendingAddress;
+          }
+        }
+      }
     }
     if (!mounted) return;
     _name.text = name;
@@ -600,7 +612,6 @@ class _PhoneDialogState extends State<_PhoneDialog> {
       }
       try {
         await _saveCloudProfile(user, name: widget.signup ? _name.text.trim() : null);
-        await _setProfileSyncPending(user, false);
       } catch (_) {
         await _setProfileSyncPending(user, true);
       }
