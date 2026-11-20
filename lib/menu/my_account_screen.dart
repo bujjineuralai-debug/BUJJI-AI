@@ -31,13 +31,37 @@ String _authError(FirebaseAuthException e) {
   }
 }
 
-Future<void> _setProfileSyncPending(User user, bool pending) async {
+Future<void> _setProfileSyncPending(
+  User user,
+  bool pending, {
+  DateTime? dateOfBirth,
+  String? preferredAddress,
+  bool includePreferences = false,
+}) async {
   final prefs = await SharedPreferences.getInstance();
   final key = 'account_profile_sync_pending_${user.uid}';
   if (pending) {
     await prefs.setBool(key, true);
+    if (includePreferences) {
+      final dobKey = '${key}_dob';
+      final addressKey = '${key}_address';
+      if (dateOfBirth == null) {
+        await prefs.setString(dobKey, '');
+      } else {
+        await prefs.setString(
+          dobKey,
+          DateTime(dateOfBirth.year, dateOfBirth.month, dateOfBirth.day)
+              .toIso8601String()
+              .split('T')
+              .first,
+        );
+      }
+      await prefs.setString(addressKey, preferredAddress ?? 'auto');
+    }
   } else {
     await prefs.remove(key);
+    await prefs.remove('${key}_dob');
+    await prefs.remove('${key}_address');
   }
 }
 
@@ -157,12 +181,24 @@ class _MyAccountScreenState extends State<MyAccountScreen> {
         if ((user.displayName ?? '').isEmpty && localName.isNotEmpty) {
           await user.updateDisplayName(localName);
         }
+        final pendingKey = 'account_profile_sync_pending_${user.uid}';
+        final pendingDobKey = '${pendingKey}_dob';
+        final pendingAddressKey = '${pendingKey}_address';
+        final hasPendingPreferences = localPrefs.containsKey(pendingDobKey) &&
+            localPrefs.containsKey(pendingAddressKey);
+        final pendingDob = hasPendingPreferences
+            ? localPrefs.getString(pendingDobKey) ?? ''
+            : null;
         await _saveCloudProfile(
           auth.currentUser!,
           name: localName.isEmpty ? null : localName,
-          dateOfBirth: _dateOfBirth,
-          preferredAddress: _preferredAddress,
-          clearDateOfBirth: _dateOfBirth == null,
+          dateOfBirth: pendingDob == null || pendingDob.isEmpty
+              ? null
+              : DateTime.tryParse(pendingDob),
+          preferredAddress: hasPendingPreferences
+              ? localPrefs.getString(pendingAddressKey)
+              : null,
+          clearDateOfBirth: hasPendingPreferences && pendingDob!.isEmpty,
         );
         await _setProfileSyncPending(user, false);
       } catch (_) {
@@ -237,7 +273,13 @@ class _MyAccountScreenState extends State<MyAccountScreen> {
       _notice(_authError(e));
     } catch (_) {
       if (profileUser != null) {
-        await _setProfileSyncPending(profileUser!, true);
+        await _setProfileSyncPending(
+          profileUser!,
+          true,
+          dateOfBirth: _dateOfBirth,
+          preferredAddress: _preferredAddress,
+          includePreferences: true,
+        );
       }
       _notice('Profile is saved locally; cloud sync is pending. Check your connection and retry.');
     } finally {
@@ -374,7 +416,7 @@ class _MyAccountScreenState extends State<MyAccountScreen> {
                 decoration: BoxDecoration(
                   color: _panel,
                   borderRadius: BorderRadius.circular(12),
-                  border: Border.all(color: Colors.orangeAccent.withValues(alpha: 0.6)),
+                  border: Border.all(color: Colors.orangeAccent.withOpacity(0.6)),
                 ),
                 child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
                   Text(
