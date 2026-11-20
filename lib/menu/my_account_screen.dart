@@ -192,7 +192,7 @@ class _MyAccountScreenState extends State<MyAccountScreen> {
       try {
         final localPrefs = await SharedPreferences.getInstance();
         final localName = localPrefs.getString('account_name') ?? '';
-        if ((user.displayName ?? '').isEmpty && localName.isNotEmpty) {
+        if (localName.isNotEmpty && user.displayName != localName) {
           await user.updateDisplayName(localName);
         }
         final pendingKey = 'account_profile_sync_pending_${user.uid}';
