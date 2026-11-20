@@ -135,5 +135,15 @@ test("API diagnostics treat explicit application failure in a 2xx response as fa
   assert.match(source, /static bool isSuccessfulApplicationResponse/);
   assert.match(source, /data\['success'\] != false/);
   assert.match(source, /applicationSuccess != false/);
-  assert.match(source, /applicationSuccess: decoded\['success'\] is bool/);
+  assert.match(source, /applicationSuccess: isSuccessfulApplicationResponse/);
+});
+
+test("pending account preferences survive app reload until cloud sync succeeds", async () => {
+  const source = await read("lib/menu/my_account_screen.dart");
+  assert.match(source, /includePreferences = false/);
+  assert.match(source, /account_profile_sync_pending_\$\{user\.uid\}_dob/);
+  assert.match(source, /account_profile_sync_pending_\$\{user\.uid\}_address/);
+  assert.match(source, /if \(profileSyncPending\)/);
+  assert.match(source, /hasPendingPreferences/);
+  assert.match(source, /await _setProfileSyncPending\(user, false\)/);
 });
